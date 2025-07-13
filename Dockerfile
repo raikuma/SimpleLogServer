@@ -13,8 +13,8 @@ RUN npm ci --only=production
 # Copy the rest of the application code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs
+# Create user_logs directory
+RUN mkdir -p user_logs
 
 # Create a non-root user to run the application
 RUN addgroup -g 1001 -S nodejs

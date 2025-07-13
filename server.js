@@ -10,8 +10,8 @@ const HOST = '0.0.0.0';
 // Middleware to parse JSON requests
 app.use(express.json());
 
-// Ensure logs directory exists
-const logsDir = path.join(__dirname, 'logs');
+// Ensure user_logs directory exists
+const logsDir = path.join(__dirname, 'user_logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
 }
@@ -94,7 +94,7 @@ app.get('/api/logs', (req, res) => {
         });
     } catch (error) {
         res.status(500).json({
-            error: 'Failed to read logs directory',
+            error: 'Failed to read user_logs directory',
             message: error.message
         });
     }
@@ -104,7 +104,7 @@ app.get('/api/logs', (req, res) => {
 app.get('/api/logs/download', (req, res) => {
     try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `logs-${timestamp}.zip`;
+        const filename = `user_logs-${timestamp}.zip`;
         
         // Set response headers
         res.setHeader('Content-Type', 'application/zip');
@@ -127,9 +127,9 @@ app.get('/api/logs/download', (req, res) => {
         // Pipe archive to response
         archive.pipe(res);
         
-        // Check if logs directory exists and has files
+        // Check if user_logs directory exists and has files
         if (!fs.existsSync(logsDir)) {
-            // Create empty archive if no logs directory
+            // Create empty archive if no user_logs directory
             archive.finalize();
             return;
         }
@@ -221,6 +221,7 @@ app.listen(PORT, HOST, () => {
     console.log(`Simple Log Server is running on port ${PORT}`);
     console.log(`POST to http://localhost:${PORT}/log with user_id and message`);
     console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`Log files are stored in user_logs directory`);
 });
 
 module.exports = app;
