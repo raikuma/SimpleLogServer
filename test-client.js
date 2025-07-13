@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = 'http://localhost:3333';
 
 // Test data
 const testLogs = [
@@ -48,7 +48,7 @@ async function testLogServer() {
 
     } catch (error) {
         if (error.code === 'ECONNREFUSED') {
-            console.error('❌ Cannot connect to server. Make sure the server is running on port 3000.');
+            console.error('❌ Cannot connect to server. Make sure the server is running on port 3333.');
             console.log('💡 Start the server with: npm start');
         } else {
             console.error('❌ Test failed:', error.message);

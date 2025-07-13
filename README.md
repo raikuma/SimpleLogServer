@@ -28,11 +28,11 @@ npm install
 npm start
 ```
 
-The server will start on port 3000 (or the port specified in the PORT environment variable).
+The server will start on port 3333 (or the port specified in the PORT environment variable).
 
 ### Log Viewer
 
-Open your browser and go to `http://localhost:3000` to access the web-based log viewer. The viewer provides:
+Open your browser and go to `http://localhost:3333` to access the web-based log viewer. The viewer provides:
 
 - **Real-time log browsing**: See all available log files at a glance
 - **Interactive interface**: Click on any log file to view its contents
@@ -149,21 +149,21 @@ The test client will:
 You can also test manually using curl:
 
 ```bash
-curl -X POST http://localhost:3000/log \
+curl -X POST http://localhost:3333/log \
   -H "Content-Type: application/json" \
   -d '{"user_id":"test","message":"Hello World"}'
 ```
 
 With custom created timestamp:
 ```bash
-curl -X POST http://localhost:3000/log \
+curl -X POST http://localhost:3333/log \
   -H "Content-Type: application/json" \
   -d '{"user_id":"test","message":"Historical event","created":"2025-07-12T14:20:00.000Z"}'
 ```
 
 Download logs as ZIP:
 ```bash
-curl -X GET http://localhost:3000/api/logs/download -o logs.zip
+curl -X GET http://localhost:3333/api/logs/download -o logs.zip
 ```
 
 ## Log Files

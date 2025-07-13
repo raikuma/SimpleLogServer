@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 IMAGE_NAME="simple-log-server"
 CONTAINER_NAME="simple-log-server"
-PORT=3000
+PORT=3333
 
 echo -e "${GREEN}Simple Log Server Docker Runner${NC}"
 echo "=================================="
@@ -32,7 +32,7 @@ run_basic() {
     echo -e "${YELLOW}Starting container (basic mode)...${NC}"
     docker run -d \
         --name $CONTAINER_NAME \
-        -p $PORT:3000 \
+        -p $PORT:3333 \
         $IMAGE_NAME
     
     if [ $? -eq 0 ]; then
@@ -52,7 +52,7 @@ run_with_logs() {
     
     docker run -d \
         --name $CONTAINER_NAME \
-        -p $PORT:3000 \
+        -p $PORT:3333 \
         -v "$(pwd)/logs:/app/logs" \
         $IMAGE_NAME
     
@@ -70,7 +70,7 @@ run_interactive() {
     echo -e "${YELLOW}Starting container in interactive mode...${NC}"
     docker run -it \
         --name $CONTAINER_NAME \
-        -p $PORT:3000 \
+        -p $PORT:3333 \
         -v "$(pwd)/logs:/app/logs" \
         $IMAGE_NAME
 }
