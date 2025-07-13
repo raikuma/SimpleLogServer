@@ -29,11 +29,8 @@ USER nextjs
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Define environment variables
+# Define environment variable
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3000
-ENV RATE_LIMIT=100
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
