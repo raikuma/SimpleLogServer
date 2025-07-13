@@ -47,19 +47,19 @@ run_basic() {
 run_with_logs() {
     echo -e "${YELLOW}Starting container with persistent logs...${NC}"
     
-    # Create logs directory if it doesn't exist
-    mkdir -p ./logs
+    # Create user_logs directory if it doesn't exist
+    mkdir -p ./user_logs
     
     docker run -d \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \
-        -v "$(pwd)/logs:/app/logs" \
+        -v "$(pwd)/user_logs:/app/user_logs" \
         $IMAGE_NAME
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Container started with persistent logs!${NC}"
         echo "Server available at: http://localhost:$PORT"
-        echo "Logs will be saved to: ./logs"
+        echo "Logs will be saved to: ./user_logs"
     else
         echo -e "${RED}Failed to start container${NC}"
     fi
@@ -71,7 +71,7 @@ run_interactive() {
     docker run -it \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \
-        -v "$(pwd)/logs:/app/logs" \
+        -v "$(pwd)/user_logs:/app/user_logs" \
         $IMAGE_NAME
 }
 
