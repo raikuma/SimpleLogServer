@@ -11,7 +11,7 @@ const HOST = '0.0.0.0';
 app.use(express.json());
 
 // Ensure logs directory exists
-const logsDir = path.join(__dirname, 'user_logs');
+const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
 }
