@@ -50,6 +50,14 @@ run_with_logs() {
     # Create user_logs directory if it doesn't exist
     mkdir -p ./user_logs
     
+    # Set proper permissions for the user_logs directory to match container user (1001)
+    # This ensures the nextjs user in the container can write to the directory
+    if command -v chown >/dev/null 2>&1; then
+        sudo chown -R 1001:1001 ./user_logs 2>/dev/null || chmod 777 ./user_logs
+    else
+        chmod 777 ./user_logs
+    fi
+    
     docker run -d \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \
@@ -68,6 +76,15 @@ run_with_logs() {
 # Function to run container interactively
 run_interactive() {
     echo -e "${YELLOW}Starting container in interactive mode...${NC}"
+    
+    # Create user_logs directory if it doesn't exist and set proper permissions
+    mkdir -p ./user_logs
+    if command -v chown >/dev/null 2>&1; then
+        sudo chown -R 1001:1001 ./user_logs 2>/dev/null || chmod 777 ./user_logs
+    else
+        chmod 777 ./user_logs
+    fi
+    
     docker run -it \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \

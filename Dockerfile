@@ -16,15 +16,15 @@ COPY . .
 # Create user_logs directory and ensure proper permissions
 RUN mkdir -p user_logs && chmod 777 user_logs
 
-# Create a non-root user to run the application
+# Create a non-root user to run the application (optional, but we'll run as root for simplicity)
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 
 # Change ownership of the app directory to the nodejs user
 RUN chown -R nextjs:nodejs /app
 
-# Switch to the non-root user
-USER nextjs
+# For simplicity and to avoid permission issues with volume mounts, run as root
+# USER nextjs
 
 # Expose the port the app runs on
 EXPOSE 3333
