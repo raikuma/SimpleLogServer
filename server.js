@@ -2,12 +2,71 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Middleware to parse JSON requests
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// CORS configuration for internet access
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+// Security headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// Rate limiting middleware (basic implementation)
+const requestCounts = new Map();
+const RATE_LIMIT = parseInt(process.env.RATE_LIMIT) || 100; // requests per minute
+const RATE_WINDOW = 60000; // 1 minute in milliseconds
+
+const rateLimit = (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!requestCounts.has(clientIP)) {
+        requestCounts.set(clientIP, { count: 1, resetTime: now + RATE_WINDOW });
+        return next();
+    }
+    
+    const clientData = requestCounts.get(clientIP);
+    
+    if (now > clientData.resetTime) {
+        // Reset counter
+        clientData.count = 1;
+        clientData.resetTime = now + RATE_WINDOW;
+        return next();
+    }
+    
+    if (clientData.count >= RATE_LIMIT) {
+        return res.status(429).json({
+            error: 'Too many requests',
+            message: 'Rate limit exceeded. Please try again later.'
+        });
+    }
+    
+    clientData.count++;
+    next();
+};
+
+// Apply rate limiting to all routes
+app.use(rateLimit);
+
+// Trust proxy headers (important for getting real IP addresses)
+app.set('trust proxy', true);
 
 // Ensure logs directory exists
 const logsDir = path.join(__dirname, 'user_logs');
@@ -216,10 +275,13 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Simple Log Server is running on port ${PORT}`);
-    console.log(`POST to http://localhost:${PORT}/log with user_id and message`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
+app.listen(PORT, HOST, () => {
+    console.log(`Simple Log Server is running on ${HOST}:${PORT}`);
+    console.log(`POST to http://${HOST}:${PORT}/log with user_id and message`);
+    console.log(`Health check: http://${HOST}:${PORT}/health`);
+    console.log(`Web viewer: http://${HOST}:${PORT}/`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Rate limit: ${RATE_LIMIT} requests per minute`);
 });
 
 module.exports = app;
