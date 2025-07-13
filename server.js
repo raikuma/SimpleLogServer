@@ -5,6 +5,7 @@ const archiver = require('archiver');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -216,7 +217,7 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
     console.log(`Simple Log Server is running on port ${PORT}`);
     console.log(`POST to http://localhost:${PORT}/log with user_id and message`);
     console.log(`Health check: http://localhost:${PORT}/health`);
