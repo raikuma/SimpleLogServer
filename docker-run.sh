@@ -53,7 +53,7 @@ run_with_logs() {
     docker run -d \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \
-        -v "$(pwd)/user_logs:/app/user_logs" \
+        -v "$(pwd)/logs:/app/user_logs" \
         $IMAGE_NAME
     
     if [ $? -eq 0 ]; then
@@ -71,7 +71,7 @@ run_interactive() {
     docker run -it \
         --name $CONTAINER_NAME \
         -p $PORT:3333 \
-        -v "$(pwd)/user_logs:/app/user_logs" \
+        -v "$(pwd)/logs:/app/user_logs" \
         $IMAGE_NAME
 }
 

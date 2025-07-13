@@ -88,7 +88,7 @@ goto menu
 echo Starting container with persistent logs...
 if not exist logs mkdir logs
 call :stop_container_silent
-docker run -d --name %CONTAINER_NAME% -p %PORT%:3333 -v "%cd%/user_logs:/app/user_logs" %IMAGE_NAME%
+docker run -d --name %CONTAINER_NAME% -p %PORT%:3333 -v "%cd%/logs:/app/user_logs" %IMAGE_NAME%
 if errorlevel 1 (
     echo Failed to start container
 ) else (
@@ -106,7 +106,7 @@ goto menu
 :run_interactive
 echo Starting container in interactive mode...
 call :stop_container_silent
-docker run -it --name %CONTAINER_NAME% -p %PORT%:3333 -v "%cd%/user_logs:/app/user_logs" %IMAGE_NAME%
+docker run -it --name %CONTAINER_NAME% -p %PORT%:3333 -v "%cd%/logs:/app/user_logs" %IMAGE_NAME%
 if "%1"=="interactive" exit /b 0
 goto menu
 
