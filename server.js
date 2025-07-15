@@ -72,21 +72,29 @@ app.get('/health', (req, res) => {
 // Get list of available log files
 app.get('/api/logs', (req, res) => {
     try {
-        const files = fs.readdirSync(logsDir)
+        let files = fs.readdirSync(logsDir)
             .filter(file => file.endsWith('.log'))
             .map(file => {
                 const filePath = path.join(logsDir, file);
                 const stats = fs.statSync(filePath);
                 const userId = file.replace('.log', '');
-                
+
                 return {
                     user_id: userId,
                     filename: file,
                     size: stats.size,
                     modified: stats.mtime.toISOString(),
-                    created: stats.birthtime.toISOString()
+                    created: stats.birthtime.toISOString(),
+                    _mtime: stats.mtime.getTime()  // 정렬용 내부 필드
                 };
             });
+
+// 수정 시간 기준 정렬 (내림차순)
+files.sort((a, b) => b._mtime - a._mtime);
+
+// 정렬 후 정렬용 필드 제거
+files = files.map(({ _mtime, ...rest }) => rest);
+
         
         res.json({
             success: true,
