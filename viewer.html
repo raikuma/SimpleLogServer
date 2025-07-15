@@ -281,6 +281,9 @@
                 return;
             }
 
+            // 🔽 여기서 modified 시간 기준 정렬 (내림차순: 최신이 위로)
+            logs.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+
             const logsHtml = logs.map(log => `
                 <div class="log-item" onclick="selectLog('${log.user_id}')" data-user-id="${log.user_id}">
                     <div class="user-id">${log.user_id}</div>
@@ -293,6 +296,7 @@
 
             logsListEl.innerHTML = logsHtml;
         }
+
 
         // Select and load a specific log file
         async function selectLog(userId) {
