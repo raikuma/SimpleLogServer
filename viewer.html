@@ -70,6 +70,31 @@
             cursor: not-allowed;
         }
 
+        .version-filter {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eef1fb;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .version-filter-title {
+            font-weight: 700;
+            color: #42507a;
+            margin-right: 4px;
+        }
+
+        .version-filter label {
+            font-size: 0.9em;
+            color: #37415f;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
         .logs-container {
             display: grid;
             grid-template-columns: 1fr 2fr;
@@ -191,6 +216,569 @@
             color: #667eea;
         }
 
+        .stats-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stats-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .stats-meta {
+            color: #666;
+            margin-bottom: 14px;
+            font-size: 0.95em;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .progress-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .progress-chart {
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .progress-plot {
+            min-width: 760px;
+            height: 240px;
+            border-left: 1px solid #d7deff;
+            border-bottom: 1px solid #d7deff;
+            padding: 0;
+            position: relative;
+            background:
+                linear-gradient(to top, rgba(102,126,234,0.08) 1px, transparent 1px);
+            background-size: 100% 20%;
+        }
+
+        .progress-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .progress-line {
+            fill: none;
+            stroke: #3ba46f;
+            stroke-width: 3;
+        }
+
+        .progress-dot {
+            fill: #2f9d62;
+            stroke: #d8f3e5;
+            stroke-width: 2;
+        }
+
+        .progress-value-text {
+            font-size: 12px;
+            fill: #3d496d;
+            font-weight: 700;
+        }
+
+        .progress-xlabels {
+            min-width: 760px;
+            display: grid;
+            grid-template-columns: repeat(8, minmax(84px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .progress-label-item {
+            text-align: center;
+        }
+
+        .progress-label {
+            font-size: 0.84em;
+            color: #3f4c72;
+            font-weight: 600;
+        }
+
+        .progress-count {
+            margin-top: 4px;
+            color: #495057;
+            font-size: 0.78em;
+            text-align: center;
+        }
+
+        .heatmap-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .heatmap-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .heatmap-wrap {
+            overflow-x: auto;
+        }
+
+        .heatmap-table {
+            border-collapse: collapse;
+            min-width: 760px;
+            table-layout: fixed;
+        }
+
+        .heatmap-table th,
+        .heatmap-table td {
+            border: 1px solid #d7deff;
+            text-align: center;
+            padding: 4px 6px;
+            font-size: 0.82em;
+            min-width: 34px;
+            height: 28px;
+        }
+
+        .heatmap-table th {
+            background: #f5f7ff;
+            color: #42507a;
+            font-weight: 700;
+        }
+
+        .heatmap-legend {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #4a4a4a;
+            font-size: 0.84em;
+        }
+
+        .heatmap-gradient {
+            width: 180px;
+            height: 10px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(102,126,234,0.08) 0%, rgba(40,72,170,0.95) 100%);
+            border: 1px solid #d7deff;
+        }
+
+        .oxygen-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .oxygen-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .oxygen-controls {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .oxygen-controls label {
+            color: #4a4a4a;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .oxygen-run-select {
+            min-width: 180px;
+            max-height: 140px;
+            border: 1px solid #d7deff;
+            border-radius: 6px;
+            padding: 6px;
+            background: #fafbff;
+            color: #37415f;
+        }
+
+        .oxygen-chart-wrap {
+            overflow-x: auto;
+        }
+
+        .oxygen-plot {
+            min-width: 760px;
+            height: 300px;
+            border-left: 1px solid #d7deff;
+            border-bottom: 1px solid #d7deff;
+            background:
+                linear-gradient(to top, rgba(102,126,234,0.08) 1px, transparent 1px);
+            background-size: 100% 20%;
+        }
+
+        .oxygen-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .oxygen-legend {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85em;
+            color: #3f4c72;
+        }
+
+        .oxygen-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .oxygen-legend-swatch {
+            width: 18px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .lucky-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .lucky-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .lucky-controls {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .lucky-btn {
+            background: #ff7f50;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .lucky-btn:hover {
+            background: #f27043;
+        }
+
+        .lucky-btn:disabled {
+            background: #c9cedd;
+            cursor: not-allowed;
+        }
+
+        .board-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .board-panel h4 {
+            margin-bottom: 8px;
+            color: #40507d;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 34px);
+            grid-template-rows: repeat(5, 34px);
+            gap: 4px;
+        }
+
+        .board-cell {
+            width: 34px;
+            height: 34px;
+            border: 1px solid #d7deff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #27355f;
+            background: #f8faff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .board-cell.empty {
+            color: transparent;
+        }
+
+        .board-meta {
+            color: #4a4a4a;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+        }
+
+        .item-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .item-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .item-table-wrap {
+            overflow-x: auto;
+        }
+
+        .item-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+        }
+
+        .item-table th,
+        .item-table td {
+            border: 1px solid #d7deff;
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .item-table th {
+            background: #f5f7ff;
+            color: #42507a;
+            font-weight: 700;
+        }
+
+        .item-charts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .item-chart-card h4 {
+            margin-bottom: 8px;
+            color: #3f4c72;
+        }
+
+        .item-chart-wrap {
+            overflow-x: auto;
+        }
+
+        .item-chart-plot {
+            min-width: 760px;
+            height: 280px;
+            border-left: 1px solid #d7deff;
+            border-bottom: 1px solid #d7deff;
+            background:
+                linear-gradient(to top, rgba(102,126,234,0.08) 1px, transparent 1px);
+            background-size: 100% 20%;
+        }
+
+        .item-chart-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .depth-section {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .depth-section h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .depth-controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .depth-run-select {
+            min-width: 180px;
+            max-height: 150px;
+            border: 1px solid #d7deff;
+            border-radius: 6px;
+            padding: 6px;
+            background: #fafbff;
+            color: #37415f;
+        }
+
+        .depth-toggle-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .depth-toggle-group label {
+            font-size: 0.9em;
+            color: #3f4c72;
+        }
+
+        .depth-chart-wrap {
+            overflow-x: auto;
+        }
+
+        .depth-chart-plot {
+            min-width: 760px;
+            height: 300px;
+            border-left: 1px solid #d7deff;
+            border-bottom: 1px solid #d7deff;
+            background:
+                linear-gradient(to top, rgba(102,126,234,0.08) 1px, transparent 1px);
+            background-size: 100% 20%;
+        }
+
+        .depth-chart-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .depth-legend {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85em;
+            color: #3f4c72;
+        }
+
+        .depth-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .depth-legend-swatch {
+            width: 18px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .depth-table-wrap {
+            overflow-x: auto;
+        }
+
+        .depth-table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+        }
+
+        .depth-table th,
+        .depth-table td {
+            border: 1px solid #d7deff;
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 0.88em;
+        }
+
+        .depth-table th {
+            background: #f5f7ff;
+            color: #42507a;
+            font-weight: 700;
+        }
+
+        .histogram {
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .hist-plot {
+            min-width: 760px;
+            height: 260px;
+            border-left: 1px solid #d7deff;
+            border-bottom: 1px solid #d7deff;
+            padding: 10px 8px 0 8px;
+            display: grid;
+            grid-template-columns: repeat(21, minmax(28px, 1fr));
+            gap: 6px;
+            align-items: end;
+            background:
+                linear-gradient(to top, rgba(102,126,234,0.08) 1px, transparent 1px);
+            background-size: 100% 20%;
+        }
+
+        .hist-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 0;
+            height: 100%;
+        }
+
+        .hist-count {
+            font-size: 0.78em;
+            color: #4a4a4a;
+            margin-bottom: 4px;
+            line-height: 1;
+            min-height: 12px;
+        }
+
+        .hist-bar {
+            width: 100%;
+            max-width: 26px;
+            border: 1px solid #8fb3c8;
+            background: rgba(102, 126, 234, 0.32);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.25s ease;
+        }
+
+        .hist-label {
+            margin-top: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72em;
+            color: #4a4a4a;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            line-height: 1;
+            height: 66px;
+            white-space: nowrap;
+        }
+
         @media (max-width: 768px) {
             .logs-container {
                 grid-template-columns: 1fr;
@@ -214,7 +802,17 @@
             <button id="refreshBtn" onclick="loadLogs()">🔄 Refresh Logs</button>
             <button id="clearBtn" onclick="clearView()">🗑️ Clear View</button>
             <button id="downloadBtn" onclick="downloadLogs()">📦 Download ZIP</button>
+            <label style="margin-left: 8px; color: #444; font-size: 0.95em;">
+                <input type="checkbox" id="autoRefreshToggle" checked onchange="handleAutoRefreshToggle()">
+                Auto Refresh (10s)
+            </label>
             <span id="status" style="margin-left: 20px; color: #666;"></span>
+            <div class="version-filter">
+                <span class="version-filter-title">Version Filter:</span>
+                <div id="versionFilterOptions" style="display:flex; flex-wrap:wrap; gap:10px;">
+                    <span style="color:#666; font-size:0.9em;">Loading...</span>
+                </div>
+            </div>
         </div>
 
         <div class="logs-container">
@@ -235,11 +833,91 @@
                 </div>
             </div>
         </div>
+
+        <div class="stats-section" id="statsSection">
+            <h3>Lifetime Play Time Stats</h3>
+            <div id="statsContent" class="loading">Loading stats...</div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h3>Player Progress Achievement</h3>
+            <div id="progressContent" class="loading">Loading progress stats...</div>
+        </div>
+
+        <div class="heatmap-section" id="queryHeatmapSection">
+            <h3>Query Counts by Turn Heatmap</h3>
+            <div id="queryHeatmapContent" class="loading">Loading query heatmap...</div>
+        </div>
+
+        <div class="heatmap-section" id="queryTransitionSection">
+            <h3>Query Transition Heatmap (A -> C)</h3>
+            <div id="queryTransitionContent" class="loading">Loading query transition heatmap...</div>
+        </div>
+
+        <div class="oxygen-section" id="oxygenSection">
+            <h3>Round Entry Oxygen Trends</h3>
+            <div class="oxygen-controls">
+                <label for="oxygenRunSelect">Select run(s):</label>
+                <select id="oxygenRunSelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="oxygenChartContent" class="loading">Loading oxygen trend chart...</div>
+        </div>
+
+        <div class="oxygen-section" id="electricitySection">
+            <h3>Round Entry Electricity Trends</h3>
+            <div class="oxygen-controls">
+                <label for="electricityRunSelect">Select run(s):</label>
+                <select id="electricityRunSelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="electricityChartContent" class="loading">Loading electricity trend chart...</div>
+        </div>
+
+        <div class="lucky-section" id="luckySection">
+            <h3>Feeling Lucky Board Viewer</h3>
+            <div class="lucky-controls">
+                <button class="lucky-btn" onclick="renderRandomBoardPair()">Feeling Lucky!</button>
+                <button class="lucky-btn" id="luckyPrevBtn" onclick="showPrevBoardPair()">Previous</button>
+                <button class="lucky-btn" id="luckyNextBtn" onclick="showNextBoardPair()">Next</button>
+                <button class="lucky-btn" id="luckyJumpBtn" onclick="jumpToLuckyPlayerLog()">Jump To Player Log</button>
+            </div>
+            <div id="luckyContent" class="loading">Loading board pairs...</div>
+        </div>
+
+        <div class="item-section" id="itemStatsSection">
+            <h3>Item Usage by Round/Turn (1-10)</h3>
+            <div id="itemStatsContent" class="loading">Loading item usage stats...</div>
+        </div>
+
+        <div class="depth-section" id="depthWinRateSection">
+            <h3>Depth Win Rate</h3>
+            <div class="depth-controls">
+                <div>
+                    <label for="depthRunSelect">Select run(s):</label><br>
+                    <select id="depthRunSelect" class="depth-run-select" multiple size="6"></select>
+                </div>
+                <div class="depth-toggle-group">
+                    <label><input type="checkbox" id="depthToggleSonarChecker" checked> Sonar Checker used</label>
+                    <label><input type="checkbox" id="depthTogglePassiveSonar" checked> Passive Sonar used</label>
+                    <label><input type="checkbox" id="depthToggleLineScanner" checked> Line Scanner used</label>
+                    <label><input type="checkbox" id="depthToggleNoItem" checked> No item used</label>
+                </div>
+            </div>
+            <div id="depthWinRateContent" class="loading">Loading depth win rate stats...</div>
+        </div>
     </div>
 
     <script>
         let currentLogs = [];
         let selectedUserId = null;
+        let cachedPlayerData = [];
+        const NULL_VERSION_KEY = '__NULL_VERSION__';
+        let selectedVersionKeys = new Set();
+        let cachedOxygenRunStats = null;
+        let cachedElectricityRunStats = null;
+        let cachedBoardPairs = [];
+        let currentLuckyIndex = -1;
+        let cachedDepthWinRateData = null;
+        let autoRefreshIntervalId = null;
 
         // Load list of log files
         async function loadLogs() {
@@ -249,6 +927,10 @@
             try {
                 statusEl.textContent = 'Loading logs...';
                 logsListEl.innerHTML = '<div class="loading">Loading logs...</div>';
+                const versionFilterOptionsEl = document.getElementById('versionFilterOptions');
+                if (versionFilterOptionsEl) {
+                    versionFilterOptionsEl.innerHTML = '<span style="color:#666; font-size:0.9em;">Loading...</span>';
+                }
                 
                 const response = await fetch('/api/logs');
                 const data = await response.json();
@@ -256,7 +938,8 @@
                 if (data.success) {
                     currentLogs = data.logs;
                     displayLogsList(data.logs);
-                    statusEl.textContent = `Found ${data.logs.length} log files`;
+                    statusEl.textContent = `Found ${data.logs.length} log files (building version index...)`;
+                    loadLifetimePlaytimeStats(data.logs);
                 } else {
                     throw new Error(data.error || 'Failed to load logs');
                 }
@@ -264,6 +947,17 @@
                 console.error('Error loading logs:', error);
                 logsListEl.innerHTML = `<div class="error">Error loading logs: ${error.message}</div>`;
                 statusEl.textContent = 'Error loading logs';
+                renderStatsError(error.message);
+                renderProgressError(error.message);
+                renderHeatmapError(error.message);
+                renderTransitionHeatmapError(error.message);
+                renderOxygenError(error.message);
+                renderElectricityError(error.message);
+                renderDepthWinRateError(error.message);
+                const versionFilterOptionsEl = document.getElementById('versionFilterOptions');
+                if (versionFilterOptionsEl) {
+                    versionFilterOptionsEl.innerHTML = `<span style="color:#b42318; font-size:0.9em;">Version filter unavailable</span>`;
+                }
             }
         }
 
@@ -451,8 +1145,1854 @@
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
         }
 
-        // Auto-refresh every 10 seconds
-        setInterval(loadLogs, 10000);
+        function extractVersionFromMessage(message) {
+            const m = (message || '').match(/Application start\s*-\s*Ver\s+([^\s]+)/i);
+            return m ? m[1] : null;
+        }
+
+        function extractVersionsFromContent(content) {
+            const versions = new Set();
+            (content || []).forEach(entry => {
+                const parsed = parseLogEntry(entry);
+                const version = extractVersionFromMessage(parsed.message || '');
+                if (version) {
+                    versions.add(version);
+                }
+            });
+
+            if (versions.size === 0) {
+                versions.add(NULL_VERSION_KEY);
+            }
+            return Array.from(versions).sort((a, b) => {
+                if (a === NULL_VERSION_KEY) return 1;
+                if (b === NULL_VERSION_KEY) return -1;
+                return a.localeCompare(b);
+            });
+        }
+
+        function renderVersionFilterOptions() {
+            const container = document.getElementById('versionFilterOptions');
+            if (!container) return;
+
+            const allVersionKeys = Array.from(new Set(
+                (cachedPlayerData || []).flatMap(player => player.versions || [])
+            )).sort((a, b) => {
+                if (a === NULL_VERSION_KEY) return 1;
+                if (b === NULL_VERSION_KEY) return -1;
+                return a.localeCompare(b);
+            });
+
+            if (allVersionKeys.length === 0) {
+                container.innerHTML = `<span style="color:#666; font-size:0.9em;">No version info</span>`;
+                return;
+            }
+
+            if (selectedVersionKeys.size === 0) {
+                allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+            } else {
+                selectedVersionKeys = new Set(
+                    Array.from(selectedVersionKeys).filter(v => allVersionKeys.includes(v))
+                );
+                if (selectedVersionKeys.size === 0) {
+                    allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+                }
+            }
+
+            const html = allVersionKeys.map(versionKey => {
+                const checked = selectedVersionKeys.has(versionKey) ? 'checked' : '';
+                const label = versionKey === NULL_VERSION_KEY ? '(null)' : versionKey;
+                return `
+                    <label>
+                        <input type="checkbox" class="version-filter-checkbox" value="${versionKey}" ${checked}>
+                        ${label}
+                    </label>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+            container.querySelectorAll('.version-filter-checkbox').forEach(el => {
+                el.addEventListener('change', onVersionFilterChanged);
+            });
+        }
+
+        function onVersionFilterChanged() {
+            const container = document.getElementById('versionFilterOptions');
+            if (!container) return;
+            const checked = Array.from(container.querySelectorAll('.version-filter-checkbox:checked'));
+            selectedVersionKeys = new Set(checked.map(el => el.value));
+            applyVersionFilterAndRender();
+        }
+
+        function getFilteredPlayerDataByVersion() {
+            if (!cachedPlayerData || cachedPlayerData.length === 0) return [];
+            if (!selectedVersionKeys || selectedVersionKeys.size === 0) return [];
+            return cachedPlayerData.filter(player => (player.versions || []).some(v => selectedVersionKeys.has(v)));
+        }
+
+        function applyVersionFilterAndRender() {
+            const statusEl = document.getElementById('status');
+            const filteredPlayers = getFilteredPlayerDataByVersion();
+            const filteredUserSet = new Set(filteredPlayers.map(p => p.userId));
+            const filteredLogs = (currentLogs || []).filter(log => filteredUserSet.has(log.user_id));
+
+            displayLogsList(filteredLogs);
+            statusEl.textContent = `Showing ${filteredLogs.length}/${currentLogs.length} log files`;
+
+            if (selectedUserId && !filteredUserSet.has(selectedUserId)) {
+                clearView();
+            }
+
+            renderLifetimeHistogram(filteredPlayers);
+            renderProgressStats(filteredPlayers);
+            renderTurnQueryHeatmap(filteredPlayers);
+            renderQueryTransitionHeatmap(filteredPlayers);
+            renderOxygenTrends(filteredPlayers);
+            renderElectricityTrends(filteredPlayers);
+            prepareLuckyBoardPairs(filteredPlayers);
+            renderItemUsageStats(filteredPlayers);
+            renderDepthWinRateStats(filteredPlayers);
+        }
+
+        function isVersionedApplicationStart(message) {
+            return /Application start\s*-\s*Ver\s+\S+/i.test(message || '');
+        }
+
+        function extractTimestampMs(entry) {
+            const parsed = parseLogEntry(entry);
+            const createdMs = Date.parse(parsed.created);
+            if (!Number.isNaN(createdMs)) {
+                return { ts: createdMs, message: parsed.message };
+            }
+            const tsMs = Date.parse(parsed.timestamp);
+            if (!Number.isNaN(tsMs)) {
+                return { ts: tsMs, message: parsed.message };
+            }
+            return null;
+        }
+
+        function computeLifetimePlaytimeMinutes(content) {
+            const events = content
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            if (events.length === 0) {
+                return { hasVersionStart: false, minutes: 0 };
+            }
+
+            const startIndices = events
+                .map((ev, idx) => isVersionedApplicationStart(ev.message) ? idx : -1)
+                .filter(idx => idx >= 0);
+
+            if (startIndices.length === 0) {
+                return { hasVersionStart: false, minutes: 0 };
+            }
+
+            let totalMs = 0;
+            const lastEventIdx = events.length - 1;
+
+            for (let i = 0; i < startIndices.length; i += 1) {
+                const startIdx = startIndices[i];
+                const startTs = events[startIdx].ts;
+                let endTs = events[lastEventIdx].ts;
+
+                if (i + 1 < startIndices.length) {
+                    const nextStartIdx = startIndices[i + 1];
+                    const prevOfNextStartIdx = nextStartIdx - 1;
+                    if (prevOfNextStartIdx >= startIdx) {
+                        endTs = events[prevOfNextStartIdx].ts;
+                    } else {
+                        endTs = startTs;
+                    }
+                }
+
+                if (endTs > startTs) {
+                    totalMs += (endTs - startTs);
+                }
+            }
+
+            return { hasVersionStart: true, minutes: totalMs / 60000 };
+        }
+
+        async function loadLifetimePlaytimeStats(logs) {
+            const statsContentEl = document.getElementById('statsContent');
+            const progressContentEl = document.getElementById('progressContent');
+            const queryHeatmapEl = document.getElementById('queryHeatmapContent');
+            const queryTransitionEl = document.getElementById('queryTransitionContent');
+            const oxygenChartEl = document.getElementById('oxygenChartContent');
+            const electricityChartEl = document.getElementById('electricityChartContent');
+            const luckyEl = document.getElementById('luckyContent');
+            const itemStatsEl = document.getElementById('itemStatsContent');
+            const depthWinRateEl = document.getElementById('depthWinRateContent');
+            if (!logs || logs.length === 0) {
+                cachedPlayerData = [];
+                selectedVersionKeys = new Set();
+                statsContentEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                progressContentEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                queryHeatmapEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                queryTransitionEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                oxygenChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                electricityChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                luckyEl.innerHTML = '<div class="empty-state"><h4>No board data</h4><p>No log files found</p></div>';
+                itemStatsEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                depthWinRateEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                const versionFilterOptionsEl = document.getElementById('versionFilterOptions');
+                if (versionFilterOptionsEl) {
+                    versionFilterOptionsEl.innerHTML = `<span style="color:#666; font-size:0.9em;">No version info</span>`;
+                }
+                return;
+            }
+
+            statsContentEl.innerHTML = '<div class="loading">Calculating lifetime play time stats...</div>';
+            progressContentEl.innerHTML = '<div class="loading">Calculating progress stats...</div>';
+            queryHeatmapEl.innerHTML = '<div class="loading">Calculating query heatmap...</div>';
+            queryTransitionEl.innerHTML = '<div class="loading">Calculating query transition heatmap...</div>';
+            oxygenChartEl.innerHTML = '<div class="loading">Calculating oxygen trend stats...</div>';
+            electricityChartEl.innerHTML = '<div class="loading">Calculating electricity trend stats...</div>';
+            luckyEl.innerHTML = '<div class="loading">Collecting enemy/guess board pairs...</div>';
+            itemStatsEl.innerHTML = '<div class="loading">Calculating item usage stats...</div>';
+            depthWinRateEl.innerHTML = '<div class="loading">Calculating depth win rate stats...</div>';
+
+            try {
+                const results = await Promise.all(logs.map(async (log) => {
+                    const response = await fetch(`/api/logs/${log.user_id}`);
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || `Failed to load ${log.user_id}`);
+                    }
+                    const content = data.content || [];
+                    const summary = computeLifetimePlaytimeMinutes(content);
+                    return {
+                        userId: log.user_id,
+                        hasVersionStart: summary.hasVersionStart,
+                        minutes: summary.minutes,
+                        content,
+                        versions: extractVersionsFromContent(content)
+                    };
+                }));
+                cachedPlayerData = results;
+                renderVersionFilterOptions();
+                applyVersionFilterAndRender();
+            } catch (error) {
+                console.error('Error loading lifetime playtime stats:', error);
+                renderStatsError(error.message);
+                renderProgressError(error.message);
+                renderHeatmapError(error.message);
+                renderTransitionHeatmapError(error.message);
+                renderOxygenError(error.message);
+                renderElectricityError(error.message);
+                document.getElementById('luckyContent').innerHTML = `<div class="error">Error loading lucky board view: ${error.message}</div>`;
+                document.getElementById('itemStatsContent').innerHTML = `<div class="error">Error loading item usage stats: ${error.message}</div>`;
+                renderDepthWinRateError(error.message);
+            }
+        }
+
+        function renderStatsError(message) {
+            const statsContentEl = document.getElementById('statsContent');
+            statsContentEl.innerHTML = `<div class="error">Error loading stats: ${message}</div>`;
+        }
+
+        function renderProgressError(message) {
+            const progressContentEl = document.getElementById('progressContent');
+            progressContentEl.innerHTML = `<div class="error">Error loading progress stats: ${message}</div>`;
+        }
+
+        function renderHeatmapError(message) {
+            const queryHeatmapEl = document.getElementById('queryHeatmapContent');
+            queryHeatmapEl.innerHTML = `<div class="error">Error loading query heatmap: ${message}</div>`;
+        }
+
+        function renderTransitionHeatmapError(message) {
+            const queryTransitionEl = document.getElementById('queryTransitionContent');
+            queryTransitionEl.innerHTML = `<div class="error">Error loading query transition heatmap: ${message}</div>`;
+        }
+
+        function renderOxygenError(message) {
+            const oxygenChartEl = document.getElementById('oxygenChartContent');
+            oxygenChartEl.innerHTML = `<div class="error">Error loading oxygen trends: ${message}</div>`;
+        }
+
+        function renderElectricityError(message) {
+            const electricityChartEl = document.getElementById('electricityChartContent');
+            electricityChartEl.innerHTML = `<div class="error">Error loading electricity trends: ${message}</div>`;
+        }
+
+        function renderDepthWinRateError(message) {
+            const depthWinRateEl = document.getElementById('depthWinRateContent');
+            depthWinRateEl.innerHTML = `<div class="error">Error loading depth win rate: ${message}</div>`;
+        }
+
+        function renderLifetimeHistogram(playerSummaries) {
+            const statsContentEl = document.getElementById('statsContent');
+            const included = playerSummaries.filter(s => s.hasVersionStart);
+            const excludedCount = playerSummaries.length - included.length;
+
+            if (included.length === 0) {
+                statsContentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No versioned logs to aggregate</h4>
+                        <p>Only logs containing "Application start - Ver x.y.z" are counted.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const bins = Array.from({ length: 21 }, (_, i) => ({
+                label: i === 20 ? '200+' : `${i * 10}-${i * 10 + 9}`,
+                count: 0
+            }));
+
+            included.forEach(player => {
+                const idx = Math.min(Math.floor(player.minutes / 10), 20);
+                bins[idx].count += 1;
+            });
+
+            const maxCount = Math.max(...bins.map(b => b.count), 1);
+            const rowsHtml = bins.map(bin => {
+                const heightPct = (bin.count / maxCount) * 100;
+                const barHeight = bin.count > 0 ? Math.max(heightPct, 2) : 0;
+                return `
+                    <div class="hist-col">
+                        <div class="hist-count">${bin.count}</div>
+                        <div class="hist-bar" style="height: ${barHeight}%;"></div>
+                        <div class="hist-label">${bin.label} min</div>
+                    </div>
+                `;
+            }).join('');
+
+            statsContentEl.innerHTML = `
+                <div class="stats-meta">
+                    Included players: <b>${included.length}</b> |
+                    Excluded (no version marker): <b>${excludedCount}</b>
+                </div>
+                <div class="histogram">
+                    <div class="hist-plot">${rowsHtml}</div>
+                </div>
+            `;
+        }
+
+        function containsMessage(content, token) {
+            const needle = (token || '').toLowerCase();
+            if (!needle) return false;
+            return (content || []).some(entry => {
+                const parsed = parseLogEntry(entry);
+                return (parsed.message || '').toLowerCase().includes(needle);
+            });
+        }
+
+        function renderProgressStats(playerSummaries) {
+            const progressContentEl = document.getElementById('progressContent');
+            const stages = [
+                { label: 'Start', token: 'Application start' },
+                { label: 'Tutorial', token: 'Tutorial started' },
+                { label: 'Ship', token: 'Ship scene started' },
+                { label: 'Bathysphere', token: 'Game start' },
+                { label: 'Round 1', token: 'Round: 1' },
+                { label: 'Round 2', token: 'Round: 2' },
+                { label: 'Round 3', token: 'Round: 3' },
+                { label: 'Ending', token: 'Game end: Go to title' }
+            ];
+
+            const totalPlayers = playerSummaries.length;
+            if (totalPlayers === 0) {
+                progressContentEl.innerHTML = '<div class="empty-state"><h4>No data</h4><p>No player logs available.</p></div>';
+                return;
+            }
+
+            const stageStats = stages.map(stage => {
+                const count = playerSummaries.filter(player => containsMessage(player.content, stage.token)).length;
+                const ratio = count / totalPlayers;
+                const pctText = `${Math.round(ratio * 100)}%`;
+                return { label: stage.label, count, pctText };
+            });
+
+            const maxCount = Math.max(...stageStats.map(s => s.count), 1);
+            const svgWidth = 760;
+            const svgHeight = 240;
+            const topPad = 18;
+            const bottomPad = 16;
+            const leftPad = 24;
+            const rightPad = 24;
+            const usableWidth = svgWidth - leftPad - rightPad;
+            const usableHeight = svgHeight - topPad - bottomPad;
+            const stepX = stageStats.length > 1 ? usableWidth / (stageStats.length - 1) : 0;
+
+            const points = stageStats.map((stage, idx) => {
+                const x = leftPad + (idx * stepX);
+                const y = topPad + (usableHeight * (1 - (stage.count / maxCount)));
+                return { ...stage, x, y };
+            });
+
+            const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+            const dotsHtml = points.map(p => `
+                <circle class="progress-dot" cx="${p.x}" cy="${p.y}" r="6"></circle>
+                <text class="progress-value-text" x="${p.x}" y="${Math.max(p.y - 10, 12)}" text-anchor="middle">${p.count}</text>
+            `).join('');
+
+            const labelsHtml = points.map(p => `
+                <div class="progress-label-item">
+                    <div class="progress-label">${p.label}</div>
+                    <div class="progress-count">${p.count}/${totalPlayers} (${p.pctText})</div>
+                </div>
+            `).join('');
+
+            const yGuideLines = [0, 0.25, 0.5, 0.75, 1].map(t => {
+                const y = topPad + (usableHeight * t);
+                return `
+                    <line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                `;
+            }).join('');
+
+            progressContentEl.innerHTML = `
+                <div class="stats-meta">Count rule: included if the log contains the exact phrase for each stage.</div>
+                <div class="progress-chart">
+                    <div class="progress-plot">
+                        <svg class="progress-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGuideLines}
+                            <polyline class="progress-line" points="${polylinePoints}"></polyline>
+                            ${dotsHtml}
+                        </svg>
+                    </div>
+                    <div class="progress-xlabels">${labelsHtml}</div>
+                </div>
+            `;
+        }
+
+        function collectTurnQueryStats(content, maxTurn, maxQuery) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rows = Array.from({ length: maxTurn }, () => Array(maxQuery).fill(0));
+            let turnIndex = 0;
+            let turnsFound = 0;
+
+            const parseQueryInputNumber = (message) => {
+                const match = (message || '').match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*\d+/i);
+                if (!match) {
+                    return null;
+                }
+                const inputNumber = Number.parseInt(match[1], 10);
+                return Number.isFinite(inputNumber) ? inputNumber : null;
+            };
+
+            for (const entry of entries) {
+                const msg = entry.message || '';
+                if (msg.includes('Game start')) {
+                    turnIndex = 0;
+                    continue;
+                }
+                if (msg.includes('Game end: Go to title')) {
+                    turnIndex = 0;
+                    continue;
+                }
+                if (msg.includes('Player turn:')) {
+                    turnIndex += 1;
+                    turnsFound += 1;
+                    continue;
+                }
+                if (msg.includes('Query:') && turnIndex > 0 && turnIndex <= maxTurn) {
+                    const inputNumber = parseQueryInputNumber(msg);
+                    if (inputNumber === null) {
+                        continue;
+                    }
+                    const queryBucket = Math.min(Math.max(inputNumber, 1), maxQuery) - 1;
+                    rows[turnIndex - 1][queryBucket] += 1;
+                }
+            }
+            return { rows, turnsFound };
+        }
+
+        function renderTurnQueryHeatmap(playerSummaries) {
+            const queryHeatmapEl = document.getElementById('queryHeatmapContent');
+            const maxTurn = 20;
+            const maxQuery = 20;
+            const matrix = Array.from({ length: maxTurn }, () => Array(maxQuery).fill(0));
+            let totalTurns = 0;
+
+            playerSummaries.forEach(player => {
+                const stats = collectTurnQueryStats(player.content, maxTurn, maxQuery);
+                totalTurns += stats.turnsFound;
+                for (let r = 0; r < maxTurn; r += 1) {
+                    for (let c = 0; c < maxQuery; c += 1) {
+                        matrix[r][c] += stats.rows[r][c];
+                    }
+                }
+            });
+
+            const maxCount = Math.max(...matrix.flat(), 0);
+            if (maxCount === 0) {
+                queryHeatmapEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No turn/query data found</h4>
+                        <p>Need logs that contain both "Player turn:" and "Query:" messages.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const headerCells = Array.from({ length: maxQuery }, (_, i) => `<th>${i + 1}</th>`).join('');
+            const bodyRows = matrix.map((row, rowIdx) => {
+                const dataCells = row.map(value => {
+                    const alpha = value > 0 ? (0.08 + (0.87 * (value / maxCount))) : 0.04;
+                    const textColor = alpha > 0.55 ? '#f5f8ff' : '#1f2a44';
+                    return `<td style="background: rgba(40,72,170,${alpha.toFixed(3)}); color: ${textColor};">${value}</td>`;
+                }).join('');
+                return `<tr><th>${rowIdx + 1}</th>${dataCells}</tr>`;
+            }).join('');
+
+            queryHeatmapEl.innerHTML = `
+                <div class="stats-meta">Aggregated turns: <b>${totalTurns}</b> | Axes: Turn Number (Y) x Queried Number A in "A-(B)-&gt;C" (X)</div>
+                <div class="heatmap-wrap">
+                    <table class="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th>Turn\\Query</th>
+                                ${headerCells}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bodyRows}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="heatmap-legend">
+                    <span>Low</span>
+                    <div class="heatmap-gradient"></div>
+                    <span>High (max ${maxCount})</span>
+                </div>
+            `;
+        }
+
+        function collectQueryTransitions(content, maxNumber) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rows = Array.from({ length: maxNumber }, () => Array(maxNumber).fill(0));
+            let transitionCount = 0;
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const m = msg.match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*(\d+)/i);
+                if (!m) {
+                    return;
+                }
+                const start = Number.parseInt(m[1], 10);
+                const end = Number.parseInt(m[2], 10);
+                if (!Number.isFinite(start) || !Number.isFinite(end)) {
+                    return;
+                }
+                if (start < 1 || start > maxNumber || end < 1 || end > maxNumber) {
+                    return;
+                }
+                rows[start - 1][end - 1] += 1;
+                transitionCount += 1;
+            });
+
+            return { rows, transitionCount };
+        }
+
+        function renderQueryTransitionHeatmap(playerSummaries) {
+            const queryTransitionEl = document.getElementById('queryTransitionContent');
+            const maxNumber = 20;
+            const matrix = Array.from({ length: maxNumber }, () => Array(maxNumber).fill(0));
+            let totalTransitions = 0;
+
+            playerSummaries.forEach(player => {
+                const stats = collectQueryTransitions(player.content, maxNumber);
+                totalTransitions += stats.transitionCount;
+                for (let r = 0; r < maxNumber; r += 1) {
+                    for (let c = 0; c < maxNumber; c += 1) {
+                        matrix[r][c] += stats.rows[r][c];
+                    }
+                }
+            });
+
+            const maxCount = Math.max(...matrix.flat(), 0);
+            if (maxCount === 0) {
+                queryTransitionEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No transition data found</h4>
+                        <p>Need logs that contain "Query: A -(B)-> C" messages.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const headerCells = Array.from({ length: maxNumber }, (_, i) => `<th>${i + 1}</th>`).join('');
+            const bodyRows = matrix.map((row, rowIdx) => {
+                const dataCells = row.map(value => {
+                    const ratio = value / maxCount;
+                    const r = Math.round(78 + ((220 - 78) * ratio));
+                    const g = Math.round(121 + ((53 - 121) * ratio));
+                    const b = Math.round(255 + ((69 - 255) * ratio));
+                    const bg = `rgb(${r},${g},${b})`;
+                    const textColor = ratio > 0.45 ? '#ffffff' : '#111827';
+                    return `<td style="background: ${bg}; color: ${textColor};">${value}</td>`;
+                }).join('');
+                return `<tr><th>${rowIdx + 1}</th>${dataCells}</tr>`;
+            }).join('');
+
+            queryTransitionEl.innerHTML = `
+                <div class="stats-meta">Transitions: <b>${totalTransitions}</b> | Axes: Queried Number A (Y) x Output Number C (X)</div>
+                <div class="heatmap-wrap">
+                    <table class="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th>A\\C</th>
+                                ${headerCells}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bodyRows}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="heatmap-legend">
+                    <span>Low</span>
+                    <div class="heatmap-gradient"></div>
+                    <span>High (max ${maxCount})</span>
+                </div>
+            `;
+        }
+
+        function escapeRegExp(text) {
+            return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function collectPlayerRunRoundResource(content, resourceName) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const runs = {};
+            let currentRun = 0;
+            let pendingRound = null;
+
+            const parseRound = (msg) => {
+                const m = (msg || '').match(/Round:\s*([123])\b/i);
+                return m ? Number.parseInt(m[1], 10) : null;
+            };
+
+            const resourcePattern = new RegExp(`(?:^|[,:])\\s*${escapeRegExp(resourceName)}\\s*(\\d+)`, 'i');
+            const parseResource = (msg) => {
+                if (!(msg || '').includes('Resource:')) {
+                    return null;
+                }
+                const m = (msg || '').match(resourcePattern);
+                return m ? Number.parseInt(m[1], 10) : null;
+            };
+
+            const ensureRun = (runNo) => {
+                if (!runs[runNo]) {
+                    runs[runNo] = { 1: null, 2: null, 3: null, end: null };
+                }
+            };
+
+            const endState = {};
+            const ensureEndState = (runNo) => {
+                if (!endState[runNo]) {
+                    endState[runNo] = {
+                        seenRound3: false,
+                        endCandidate: null,
+                        endFinalized: false
+                    };
+                }
+            };
+
+            const finalizeEndIfPossible = (runNo) => {
+                if (!runNo || runNo <= 0) return;
+                ensureRun(runNo);
+                ensureEndState(runNo);
+                const st = endState[runNo];
+                if (!st.seenRound3 || st.endFinalized) return;
+                if (Number.isFinite(st.endCandidate) && runs[runNo].end === null) {
+                    runs[runNo].end = st.endCandidate;
+                }
+                st.endFinalized = true;
+            };
+
+            for (const entry of entries) {
+                const msg = entry.message || '';
+                const lowerMsg = msg.toLowerCase();
+                if (msg.includes('Game start')) {
+                    finalizeEndIfPossible(currentRun);
+                    pendingRound = null;
+                    continue;
+                }
+                if (msg.includes('Game end: Go to title')) {
+                    finalizeEndIfPossible(currentRun);
+                    pendingRound = null;
+                    continue;
+                }
+                if (lowerMsg.includes('wrong submit')) {
+                    finalizeEndIfPossible(currentRun);
+                    pendingRound = null;
+                    continue;
+                }
+
+                const roundNo = parseRound(msg);
+                if (roundNo !== null) {
+                    if (roundNo === 1) {
+                        finalizeEndIfPossible(currentRun);
+                        currentRun += 1;
+                    } else if (currentRun === 0) {
+                        currentRun = 1;
+                    }
+                    ensureRun(currentRun);
+                    ensureEndState(currentRun);
+                    pendingRound = roundNo;
+
+                    if (roundNo === 1) {
+                        endState[currentRun].seenRound3 = false;
+                        endState[currentRun].endCandidate = null;
+                        endState[currentRun].endFinalized = false;
+                    }
+                    if (roundNo === 3) {
+                        endState[currentRun].seenRound3 = true;
+                    }
+
+                    const inlineResource = parseResource(msg);
+                    if (inlineResource !== null && runs[currentRun][roundNo] === null) {
+                        runs[currentRun][roundNo] = inlineResource;
+                        pendingRound = null;
+                    }
+                    if (inlineResource !== null && endState[currentRun].seenRound3 && !endState[currentRun].endFinalized) {
+                        endState[currentRun].endCandidate = inlineResource;
+                    }
+                    continue;
+                }
+
+                const resourceValue = parseResource(msg);
+                if (resourceValue !== null && pendingRound !== null && currentRun > 0) {
+                    ensureRun(currentRun);
+                    if (runs[currentRun][pendingRound] === null) {
+                        runs[currentRun][pendingRound] = resourceValue;
+                    }
+                    pendingRound = null;
+                }
+                if (resourceValue !== null && currentRun > 0) {
+                    ensureRun(currentRun);
+                    ensureEndState(currentRun);
+                    if (endState[currentRun].seenRound3 && !endState[currentRun].endFinalized) {
+                        endState[currentRun].endCandidate = resourceValue;
+                    }
+                }
+
+                if (msg.includes('Collect: Memo') && currentRun > 0) {
+                    ensureRun(currentRun);
+                    ensureEndState(currentRun);
+                    finalizeEndIfPossible(currentRun);
+                }
+            }
+
+            finalizeEndIfPossible(currentRun);
+            return runs;
+        }
+
+        function collectPlayerRunRoundOxygen(content) {
+            return collectPlayerRunRoundResource(content, 'Oxygen');
+        }
+
+        function collectPlayerRunRoundElectricity(content) {
+            return collectPlayerRunRoundResource(content, 'Electricity');
+        }
+
+        function aggregateRunRoundResource(playerSummaries, collector) {
+            const runMap = new Map();
+
+            playerSummaries.forEach(player => {
+                const runs = collector(player.content);
+                Object.entries(runs).forEach(([runStr, rounds]) => {
+                    const runNo = Number.parseInt(runStr, 10);
+                    if (!runMap.has(runNo)) {
+                        runMap.set(runNo, { 1: [], 2: [], 3: [], end: [] });
+                    }
+                    const bucket = runMap.get(runNo);
+                    [1, 2, 3].forEach(roundNo => {
+                        const val = rounds[roundNo];
+                        if (Number.isFinite(val)) {
+                            bucket[roundNo].push(val);
+                        }
+                    });
+                    if (Number.isFinite(rounds.end)) {
+                        bucket.end.push(rounds.end);
+                    }
+                });
+            });
+
+            const runStats = new Map();
+            const runNumbers = Array.from(runMap.keys()).sort((a, b) => a - b);
+            runNumbers.forEach(runNo => {
+                const bucket = runMap.get(runNo);
+                const stat = {};
+                [1, 2, 3].forEach(roundNo => {
+                    const vals = bucket[roundNo];
+                    if (vals.length === 0) {
+                        stat[roundNo] = { avg: null, count: 0 };
+                    } else {
+                        const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+                        stat[roundNo] = { avg, count: vals.length };
+                    }
+                });
+                if (bucket.end.length === 0) {
+                    stat.end = { avg: null, count: 0 };
+                } else {
+                    const endAvg = bucket.end.reduce((s, v) => s + v, 0) / bucket.end.length;
+                    stat.end = { avg: endAvg, count: bucket.end.length };
+                }
+                runStats.set(runNo, stat);
+            });
+
+            return { runNumbers, runStats };
+        }
+
+        function aggregateRunRoundOxygen(playerSummaries) {
+            return aggregateRunRoundResource(playerSummaries, collectPlayerRunRoundOxygen);
+        }
+
+        function aggregateRunRoundElectricity(playerSummaries) {
+            return aggregateRunRoundResource(playerSummaries, collectPlayerRunRoundElectricity);
+        }
+
+        function renderOxygenTrends(playerSummaries) {
+            cachedOxygenRunStats = aggregateRunRoundOxygen(playerSummaries);
+            renderOxygenRunSelector();
+            renderSelectedOxygenRuns();
+        }
+
+        function renderOxygenRunSelector() {
+            const selectEl = document.getElementById('oxygenRunSelect');
+            const oxygenChartEl = document.getElementById('oxygenChartContent');
+            const ordinal = (n) => {
+                const v = n % 100;
+                if (v >= 11 && v <= 13) return `${n}th`;
+                if (n % 10 === 1) return `${n}st`;
+                if (n % 10 === 2) return `${n}nd`;
+                if (n % 10 === 3) return `${n}rd`;
+                return `${n}th`;
+            };
+            if (!cachedOxygenRunStats || cachedOxygenRunStats.runNumbers.length === 0) {
+                selectEl.innerHTML = '';
+                oxygenChartEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No oxygen data found</h4>
+                        <p>Need logs containing "Round: 1/2/3" and "Resource: Oxygen ..."</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const runOptionsHtml = cachedOxygenRunStats.runNumbers
+                .map(runNo => `<option value="${runNo}">${ordinal(runNo)} run average</option>`)
+                .join('');
+            selectEl.innerHTML = `<option value="all">All runs</option>${runOptionsHtml}`;
+
+            if (selectEl.options.length > 0) {
+                selectEl.options[0].selected = true;
+            }
+
+            selectEl.onchange = () => {
+                renderSelectedOxygenRuns();
+            };
+        }
+
+        function renderSelectedOxygenRuns() {
+            const selectEl = document.getElementById('oxygenRunSelect');
+            const oxygenChartEl = document.getElementById('oxygenChartContent');
+
+            if (!cachedOxygenRunStats || cachedOxygenRunStats.runNumbers.length === 0) {
+                oxygenChartEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No oxygen data found</h4>
+                        <p>No run stats available.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+            const selectedRuns = selectedValues.includes('all')
+                ? [...cachedOxygenRunStats.runNumbers]
+                : selectedValues.map(v => Number.parseInt(v, 10)).filter(Number.isFinite);
+            if (selectedRuns.length === 0) {
+                oxygenChartEl.innerHTML = '<div class="empty-state"><h4>Select at least one run</h4><p>Choose one or more run averages from the list above.</p></div>';
+                return;
+            }
+
+            const palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#17becf', '#8c564b', '#bcbd22'];
+            const roundPoints = [
+                { key: 1, label: 'Round 1' },
+                { key: 2, label: 'Round 2' },
+                { key: 3, label: 'Round 3' },
+                { key: 'end', label: 'End Game' }
+            ];
+            const series = selectedRuns.map((runNo, idx) => ({
+                runNo,
+                color: palette[idx % palette.length],
+                stat: cachedOxygenRunStats.runStats.get(runNo)
+            })).filter(s => !!s.stat);
+
+            const adjustedColorMap = {
+                '#1f77b4': '#5fa5d6',
+                '#ff7f0e': '#ffb36a',
+                '#2ca02c': '#71c571',
+                '#d62728': '#e76c6d',
+                '#9467bd': '#b89ad4',
+                '#17becf': '#67d8e3',
+                '#8c564b': '#b1847c',
+                '#bcbd22': '#d2d36d'
+            };
+            const rewardByPoint = { 1: 0, 2: 60, 3: 120, end: 180 };
+            const adjustedColor = (base) => adjustedColorMap[base] || '#7f8fa8';
+
+            const allAverages = [];
+            series.forEach(s => {
+                roundPoints.forEach(point => {
+                    const v = s.stat[point.key].avg;
+                    if (Number.isFinite(v)) {
+                        allAverages.push(v);
+                        allAverages.push(v - rewardByPoint[point.key]);
+                    }
+                });
+            });
+
+            if (allAverages.length === 0) {
+                oxygenChartEl.innerHTML = '<div class="empty-state"><h4>No average points</h4><p>Selected run(s) do not have round oxygen entries.</p></div>';
+                return;
+            }
+
+            let yMin = Math.floor((Math.min(...allAverages) - 10) / 10) * 10;
+            let yMax = Math.ceil((Math.max(...allAverages) + 10) / 10) * 10;
+            if (yMax <= yMin) {
+                yMax = yMin + 10;
+            }
+            yMin = Math.max(0, yMin);
+
+            const svgWidth = 760;
+            const svgHeight = 300;
+            const leftPad = 48;
+            const rightPad = 24;
+            const topPad = 20;
+            const bottomPad = 34;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+
+            const xForPoint = (pointIdx) => {
+                const denom = Math.max(roundPoints.length - 1, 1);
+                return leftPad + (pointIdx * (plotW / denom));
+            };
+            const yForValue = (val) => {
+                const t = (val - yMin) / (yMax - yMin);
+                return topPad + (plotH * (1 - t));
+            };
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => yMin + ((yMax - yMin) * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForValue(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${Math.round(v)}</text>`;
+            }).join('');
+
+            const xLabelHtml = roundPoints.map((point, idx) => {
+                const x = xForPoint(idx);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="12">${point.label}</text>`;
+            }).join('');
+
+            const seriesHtml = series.map(s => {
+                const pointsRaw = roundPoints
+                    .map((point, idx) => {
+                        const avg = s.stat[point.key].avg;
+                        return Number.isFinite(avg) ? { x: xForPoint(idx), y: yForValue(avg), avg, count: s.stat[point.key].count } : null;
+                    })
+                    .filter(Boolean);
+
+                const pointsAdjusted = roundPoints
+                    .map((point, idx) => {
+                        const avg = s.stat[point.key].avg;
+                        if (!Number.isFinite(avg)) return null;
+                        const adjusted = avg - rewardByPoint[point.key];
+                        return { x: xForPoint(idx), y: yForValue(adjusted), adjusted };
+                    })
+                    .filter(Boolean);
+
+                const polylineRaw = pointsRaw.length > 1
+                    ? `<polyline points="${pointsRaw.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="3"></polyline>`
+                    : '';
+                const dotsRaw = pointsRaw.map(p => `
+                    <circle cx="${p.x}" cy="${p.y}" r="5" fill="${s.color}" stroke="#ffffff" stroke-width="2"></circle>
+                    <text x="${p.x}" y="${Math.max(12, p.y - 10)}" text-anchor="middle" fill="${s.color}" font-size="11" font-weight="700">${p.avg.toFixed(1)}</text>
+                `).join('');
+
+                const adjColor = adjustedColor(s.color);
+                const polylineAdjusted = pointsAdjusted.length > 1
+                    ? `<polyline points="${pointsAdjusted.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${adjColor}" stroke-width="2.5" stroke-dasharray="6 4"></polyline>`
+                    : '';
+                const dotsAdjusted = pointsAdjusted.map(p => `
+                    <circle cx="${p.x}" cy="${p.y}" r="4" fill="${adjColor}" stroke="#ffffff" stroke-width="1.5"></circle>
+                `).join('');
+
+                return `${polylineRaw}${dotsRaw}${polylineAdjusted}${dotsAdjusted}`;
+            }).join('');
+
+            const legendHtml = series.map(s => {
+                const adjColor = adjustedColor(s.color);
+                return `
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>Run ${s.runNo} (Raw)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>Run ${s.runNo} (Adjusted)</span>
+                `;
+            }).join('');
+
+            oxygenChartEl.innerHTML = `
+                <div class="stats-meta">Metric: average Oxygen at Round 1/2/3 entry and End Game. Adjusted line subtracts round-end rewards (+60 each round): R1 -0, R2 -60, R3 -120, End -180.</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${seriesHtml}
+                            ${xLabelHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="oxygen-legend">${legendHtml}</div>
+            `;
+        }
+
+        function renderElectricityTrends(playerSummaries) {
+            cachedElectricityRunStats = aggregateRunRoundElectricity(playerSummaries);
+            renderElectricityRunSelector();
+            renderSelectedElectricityRuns();
+        }
+
+        function renderElectricityRunSelector() {
+            const selectEl = document.getElementById('electricityRunSelect');
+            const electricityChartEl = document.getElementById('electricityChartContent');
+            const ordinal = (n) => {
+                const v = n % 100;
+                if (v >= 11 && v <= 13) return `${n}th`;
+                if (n % 10 === 1) return `${n}st`;
+                if (n % 10 === 2) return `${n}nd`;
+                if (n % 10 === 3) return `${n}rd`;
+                return `${n}th`;
+            };
+            if (!cachedElectricityRunStats || cachedElectricityRunStats.runNumbers.length === 0) {
+                selectEl.innerHTML = '';
+                electricityChartEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No electricity data found</h4>
+                        <p>Need logs containing "Round: 1/2/3" and "Resource: Electricity ..."</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const runOptionsHtml = cachedElectricityRunStats.runNumbers
+                .map(runNo => `<option value="${runNo}">${ordinal(runNo)} run average</option>`)
+                .join('');
+            selectEl.innerHTML = `<option value="all">All runs</option>${runOptionsHtml}`;
+
+            if (selectEl.options.length > 0) {
+                selectEl.options[0].selected = true;
+            }
+
+            selectEl.onchange = () => {
+                renderSelectedElectricityRuns();
+            };
+        }
+
+        function renderSelectedElectricityRuns() {
+            const selectEl = document.getElementById('electricityRunSelect');
+            const electricityChartEl = document.getElementById('electricityChartContent');
+
+            if (!cachedElectricityRunStats || cachedElectricityRunStats.runNumbers.length === 0) {
+                electricityChartEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No electricity data found</h4>
+                        <p>No run stats available.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+            const selectedRuns = selectedValues.includes('all')
+                ? [...cachedElectricityRunStats.runNumbers]
+                : selectedValues.map(v => Number.parseInt(v, 10)).filter(Number.isFinite);
+            if (selectedRuns.length === 0) {
+                electricityChartEl.innerHTML = '<div class="empty-state"><h4>Select at least one run</h4><p>Choose one or more run averages from the list above.</p></div>';
+                return;
+            }
+
+            const palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#17becf', '#8c564b', '#bcbd22'];
+            const roundPoints = [
+                { key: 1, label: 'Round 1' },
+                { key: 2, label: 'Round 2' },
+                { key: 3, label: 'Round 3' },
+                { key: 'end', label: 'End Game' }
+            ];
+            const series = selectedRuns.map((runNo, idx) => ({
+                runNo,
+                color: palette[idx % palette.length],
+                stat: cachedElectricityRunStats.runStats.get(runNo)
+            })).filter(s => !!s.stat);
+
+            const adjustedColorMap = {
+                '#1f77b4': '#5fa5d6',
+                '#ff7f0e': '#ffb36a',
+                '#2ca02c': '#71c571',
+                '#d62728': '#e76c6d',
+                '#9467bd': '#b89ad4',
+                '#17becf': '#67d8e3',
+                '#8c564b': '#b1847c',
+                '#bcbd22': '#d2d36d'
+            };
+            const rewardByPoint = { 1: 0, 2: 5, 3: 10, end: 15 };
+            const adjustedColor = (base) => adjustedColorMap[base] || '#7f8fa8';
+
+            const allAverages = [];
+            series.forEach(s => {
+                roundPoints.forEach(point => {
+                    const v = s.stat[point.key].avg;
+                    if (Number.isFinite(v)) {
+                        allAverages.push(v);
+                        allAverages.push(v - rewardByPoint[point.key]);
+                    }
+                });
+            });
+
+            if (allAverages.length === 0) {
+                electricityChartEl.innerHTML = '<div class="empty-state"><h4>No average points</h4><p>Selected run(s) do not have round electricity entries.</p></div>';
+                return;
+            }
+
+            let yMin = Math.floor((Math.min(...allAverages) - 10) / 10) * 10;
+            let yMax = Math.ceil((Math.max(...allAverages) + 10) / 10) * 10;
+            if (yMax <= yMin) {
+                yMax = yMin + 10;
+            }
+            yMin = Math.max(0, yMin);
+
+            const svgWidth = 760;
+            const svgHeight = 300;
+            const leftPad = 48;
+            const rightPad = 24;
+            const topPad = 20;
+            const bottomPad = 34;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+
+            const xForPoint = (pointIdx) => {
+                const denom = Math.max(roundPoints.length - 1, 1);
+                return leftPad + (pointIdx * (plotW / denom));
+            };
+            const yForValue = (val) => {
+                const t = (val - yMin) / (yMax - yMin);
+                return topPad + (plotH * (1 - t));
+            };
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => yMin + ((yMax - yMin) * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForValue(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${Math.round(v)}</text>`;
+            }).join('');
+
+            const xLabelHtml = roundPoints.map((point, idx) => {
+                const x = xForPoint(idx);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="12">${point.label}</text>`;
+            }).join('');
+
+            const seriesHtml = series.map(s => {
+                const pointsRaw = roundPoints
+                    .map((point, idx) => {
+                        const avg = s.stat[point.key].avg;
+                        return Number.isFinite(avg) ? { x: xForPoint(idx), y: yForValue(avg), avg } : null;
+                    })
+                    .filter(Boolean);
+
+                const pointsAdjusted = roundPoints
+                    .map((point, idx) => {
+                        const avg = s.stat[point.key].avg;
+                        if (!Number.isFinite(avg)) return null;
+                        const adjusted = avg - rewardByPoint[point.key];
+                        return { x: xForPoint(idx), y: yForValue(adjusted), adjusted };
+                    })
+                    .filter(Boolean);
+
+                const polylineRaw = pointsRaw.length > 1
+                    ? `<polyline points="${pointsRaw.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="3"></polyline>`
+                    : '';
+                const dotsRaw = pointsRaw.map(p => `
+                    <circle cx="${p.x}" cy="${p.y}" r="5" fill="${s.color}" stroke="#ffffff" stroke-width="2"></circle>
+                    <text x="${p.x}" y="${Math.max(12, p.y - 10)}" text-anchor="middle" fill="${s.color}" font-size="11" font-weight="700">${p.avg.toFixed(1)}</text>
+                `).join('');
+
+                const adjColor = adjustedColor(s.color);
+                const polylineAdjusted = pointsAdjusted.length > 1
+                    ? `<polyline points="${pointsAdjusted.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${adjColor}" stroke-width="2.5" stroke-dasharray="6 4"></polyline>`
+                    : '';
+                const dotsAdjusted = pointsAdjusted.map(p => `
+                    <circle cx="${p.x}" cy="${p.y}" r="4" fill="${adjColor}" stroke="#ffffff" stroke-width="1.5"></circle>
+                `).join('');
+                return `${polylineRaw}${dotsRaw}${polylineAdjusted}${dotsAdjusted}`;
+            }).join('');
+
+            const legendHtml = series.map(s => {
+                const adjColor = adjustedColor(s.color);
+                return `
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>Run ${s.runNo} (Raw)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>Run ${s.runNo} (Adjusted)</span>
+                `;
+            }).join('');
+
+            electricityChartEl.innerHTML = `
+                <div class="stats-meta">Metric: average Electricity at Round 1/2/3 entry and End Game. Adjusted line subtracts round-end rewards (+5 each round): R1 -0, R2 -5, R3 -10, End -15.</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${seriesHtml}
+                            ${xLabelHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="oxygen-legend">${legendHtml}</div>
+            `;
+        }
+
+        function collectBoardPairs(playerSummaries) {
+            const allPairs = [];
+
+            const parseRound = (msg) => {
+                const m = (msg || '').match(/Round:\s*([123])\b/i);
+                return m ? Number.parseInt(m[1], 10) : null;
+            };
+
+            const parseEnemy = (msg) => {
+                const m = (msg || '').match(/Enemy board:\s*([EBSXO@]{25})/i);
+                return m ? m[1].toUpperCase() : null;
+            };
+
+            const parseGuess = (msg) => {
+                const m = (msg || '').match(/Guess board:\s*([EBSXO@]{25})/i);
+                return m ? m[1].toUpperCase() : null;
+            };
+
+            playerSummaries.forEach(player => {
+                const entries = (player.content || [])
+                    .map(extractTimestampMs)
+                    .filter(Boolean)
+                    .sort((a, b) => a.ts - b.ts);
+
+                let runNo = 0;
+                let floorNo = null;
+                let pendingEnemy = null;
+
+                entries.forEach(entry => {
+                    const msg = entry.message || '';
+                    const roundNo = parseRound(msg);
+                    if (roundNo !== null) {
+                        floorNo = roundNo;
+                        if (roundNo === 1) {
+                            runNo += 1;
+                        } else if (runNo === 0) {
+                            runNo = 1;
+                        }
+                    }
+
+                    const enemy = parseEnemy(msg);
+                    if (enemy) {
+                        pendingEnemy = {
+                            enemy,
+                            runNo: runNo || 1,
+                            floorNo: floorNo || '?'
+                        };
+                        return;
+                    }
+
+                    const guess = parseGuess(msg);
+                    if (guess && pendingEnemy) {
+                        allPairs.push({
+                            userId: player.userId,
+                            runNo: pendingEnemy.runNo,
+                            floorNo: pendingEnemy.floorNo,
+                            enemy: pendingEnemy.enemy,
+                            guess
+                        });
+                        pendingEnemy = null;
+                    }
+                });
+            });
+
+            return allPairs;
+        }
+
+        function prepareLuckyBoardPairs(playerSummaries) {
+            cachedBoardPairs = collectBoardPairs(playerSummaries);
+            currentLuckyIndex = -1;
+            if (cachedBoardPairs.length === 0) {
+                document.getElementById('luckyContent').innerHTML = `
+                    <div class="empty-state">
+                        <h4>No board pairs found</h4>
+                        <p>Need logs containing both "Enemy board:" and the first following "Guess board:".</p>
+                    </div>
+                `;
+                updateLuckyButtons();
+                return;
+            }
+            renderRandomBoardPair();
+        }
+
+        function toBoardCells(boardString) {
+            const showSymbol = (ch) => {
+                if (ch === 'E') return '';
+                if (ch === 'B') return '/';
+                if (ch === 'S') return '\\';
+                if (ch === 'X') return 'X';
+                if (ch === 'O') return 'O';
+                if (ch === '@') return '@';
+                return ch;
+            };
+
+            return boardString.split('').map(ch => {
+                const symbol = showSymbol(ch);
+                const cls = symbol ? '' : ' empty';
+                return `<div class="board-cell${cls}">${symbol}</div>`;
+            }).join('');
+        }
+
+        function renderRandomBoardPair() {
+            const luckyEl = document.getElementById('luckyContent');
+            if (!cachedBoardPairs || cachedBoardPairs.length === 0) {
+                luckyEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No board pairs found</h4>
+                        <p>Need logs containing both "Enemy board:" and the first following "Guess board:".</p>
+                    </div>
+                `;
+                updateLuckyButtons();
+                return;
+            }
+            currentLuckyIndex = Math.floor(Math.random() * cachedBoardPairs.length);
+            renderLuckyPairAt(currentLuckyIndex);
+        }
+
+        function renderLuckyPairAt(index) {
+            const luckyEl = document.getElementById('luckyContent');
+            if (!cachedBoardPairs || cachedBoardPairs.length === 0) {
+                luckyEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No board pairs found</h4>
+                        <p>Need logs containing both "Enemy board:" and the first following "Guess board:".</p>
+                    </div>
+                `;
+                updateLuckyButtons();
+                return;
+            }
+            const safeIndex = ((index % cachedBoardPairs.length) + cachedBoardPairs.length) % cachedBoardPairs.length;
+            currentLuckyIndex = safeIndex;
+            const pick = cachedBoardPairs[safeIndex];
+            luckyEl.innerHTML = `
+                <div class="board-meta">
+                    Player: <b>${pick.userId}</b> |
+                    Run: <b>${pick.runNo}</b> |
+                    Floor: <b>${pick.floorNo}</b> |
+                    Pair: <b>${safeIndex + 1}/${cachedBoardPairs.length}</b>
+                </div>
+                <div class="board-pair">
+                    <div class="board-panel">
+                        <h4>Enemy Board</h4>
+                        <div class="board-grid">${toBoardCells(pick.enemy)}</div>
+                    </div>
+                    <div class="board-panel">
+                        <h4>Guess Board</h4>
+                        <div class="board-grid">${toBoardCells(pick.guess)}</div>
+                    </div>
+                </div>
+            `;
+            updateLuckyButtons();
+        }
+
+        function showPrevBoardPair() {
+            if (!cachedBoardPairs || cachedBoardPairs.length === 0) return;
+            if (currentLuckyIndex < 0) {
+                renderRandomBoardPair();
+                return;
+            }
+            renderLuckyPairAt(currentLuckyIndex - 1);
+        }
+
+        function showNextBoardPair() {
+            if (!cachedBoardPairs || cachedBoardPairs.length === 0) return;
+            if (currentLuckyIndex < 0) {
+                renderRandomBoardPair();
+                return;
+            }
+            renderLuckyPairAt(currentLuckyIndex + 1);
+        }
+
+        async function jumpToLuckyPlayerLog() {
+            if (!cachedBoardPairs || cachedBoardPairs.length === 0 || currentLuckyIndex < 0) return;
+            const pick = cachedBoardPairs[currentLuckyIndex];
+            await selectLog(pick.userId);
+        }
+
+        function updateLuckyButtons() {
+            const hasPairs = Array.isArray(cachedBoardPairs) && cachedBoardPairs.length > 0;
+            const prevBtn = document.getElementById('luckyPrevBtn');
+            const nextBtn = document.getElementById('luckyNextBtn');
+            const jumpBtn = document.getElementById('luckyJumpBtn');
+            if (!prevBtn || !nextBtn || !jumpBtn) return;
+            prevBtn.disabled = !hasPairs;
+            nextBtn.disabled = !hasPairs;
+            jumpBtn.disabled = !hasPairs || currentLuckyIndex < 0;
+        }
+
+        function classifyQueryItem(message) {
+            const msg = message || '';
+            if (!/^Query:/i.test(msg)) {
+                return null;
+            }
+
+            if (/->/.test(msg) && /-\(\s*\d+\s*[\*\^]\s*\)->/i.test(msg)) {
+                return 'sonarChecker';
+            }
+
+            if (/\|\s*[OX]\b/i.test(msg)) {
+                return 'lineScanner';
+            }
+
+            if (!msg.includes('-') && !msg.includes('|')) {
+                return 'passiveSonar';
+            }
+
+            return null;
+        }
+
+        function collectRoundItemUsage(content) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rounds = {
+                1: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
+                2: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
+                3: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) }
+            };
+
+            let currentRound = null;
+            let turnInRound = 0;
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    currentRound = Number.parseInt(roundMatch[1], 10);
+                    turnInRound = 0;
+                    return;
+                }
+
+                if (msg.includes('Player turn:') && currentRound && currentRound >= 1 && currentRound <= 3) {
+                    turnInRound += 1;
+                    return;
+                }
+
+                if (!currentRound || turnInRound <= 0 || turnInRound > 10) {
+                    return;
+                }
+
+                const item = classifyQueryItem(msg);
+                if (item) {
+                    rounds[currentRound][item][turnInRound - 1] += 1;
+                }
+            });
+
+            return rounds;
+        }
+
+        function renderItemLineChart(title, itemKey, color, matrixByRound) {
+            const rounds = [1, 2, 3];
+            const turns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            const allCounts = [];
+            rounds.forEach(r => turns.forEach(t => allCounts.push(matrixByRound[r][itemKey][t - 1])));
+            const maxCount = Math.max(...allCounts, 0);
+            const yMax = Math.max(1, Math.ceil((maxCount + 1) / 2) * 2);
+
+            const svgWidth = 760;
+            const svgHeight = 280;
+            const leftPad = 44;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+
+            const xForTurn = (turn) => leftPad + ((turn - 1) * (plotW / 9));
+            const yForCount = (count) => topPad + (plotH * (1 - (count / yMax)));
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(yMax * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForCount(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+
+            const xLabelHtml = turns.map(turn => {
+                const x = xForTurn(turn);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">T${turn}</text>`;
+            }).join('');
+
+            const roundColors = {
+                1: color,
+                2: '#ff8c42',
+                3: '#2ca02c'
+            };
+
+            const lineHtml = rounds.map(roundNo => {
+                const points = turns.map(turn => ({
+                    x: xForTurn(turn),
+                    y: yForCount(matrixByRound[roundNo][itemKey][turn - 1]),
+                    c: matrixByRound[roundNo][itemKey][turn - 1]
+                }));
+                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${roundColors[roundNo]}" stroke-width="2.5"></polyline>`;
+                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${roundColors[roundNo]}" stroke="#fff" stroke-width="1.2"></circle>`).join('');
+                return `${poly}${dots}`;
+            }).join('');
+
+            return `
+                <div class="item-chart-card">
+                    <h4>${title}</h4>
+                    <div class="item-chart-wrap">
+                        <div class="item-chart-plot">
+                            <svg class="item-chart-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                                ${yGridHtml}
+                                ${lineHtml}
+                                ${xLabelHtml}
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderItemUsageStats(playerSummaries) {
+            const itemStatsEl = document.getElementById('itemStatsContent');
+            const aggregate = {
+                1: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
+                2: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
+                3: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) }
+            };
+
+            playerSummaries.forEach(player => {
+                const perRound = collectRoundItemUsage(player.content);
+                [1, 2, 3].forEach(roundNo => {
+                    ['sonarChecker', 'lineScanner', 'passiveSonar'].forEach(itemKey => {
+                        for (let i = 0; i < 10; i += 1) {
+                            aggregate[roundNo][itemKey][i] += perRound[roundNo][itemKey][i];
+                        }
+                    });
+                });
+            });
+
+            const totalUses = [1, 2, 3].reduce((sum, roundNo) => {
+                return sum
+                    + aggregate[roundNo].sonarChecker.reduce((a, b) => a + b, 0)
+                    + aggregate[roundNo].lineScanner.reduce((a, b) => a + b, 0)
+                    + aggregate[roundNo].passiveSonar.reduce((a, b) => a + b, 0);
+            }, 0);
+
+            if (totalUses === 0) {
+                itemStatsEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No item usage data</h4>
+                        <p>Need "Round", "Player turn", and "Query" logs to calculate usage by turn.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const chartsHtml = [
+                renderItemLineChart('Sonar Checker Usage Count', 'sonarChecker', '#1f77b4', aggregate),
+                renderItemLineChart('Line Scanner Usage Count', 'lineScanner', '#d62728', aggregate),
+                renderItemLineChart('Passive Sonar Usage Count', 'passiveSonar', '#9467bd', aggregate)
+            ].join('');
+
+            itemStatsEl.innerHTML = `
+                <div class="stats-meta">Each chart shows total usage count by turn (T1~T10), with three lines: Round 1 (blue/purple/red base color), Round 2 (orange), Round 3 (green).</div>
+                <div class="item-charts">
+                    ${chartsHtml}
+                </div>
+            `;
+        }
+
+        function parseDepthFromMessage(message) {
+            const msg = message || '';
+            const depthTag = msg.match(/Depth\s*[:=]\s*(\d+)/i);
+            if (depthTag) {
+                return Number.parseInt(depthTag[1], 10);
+            }
+
+            const playerTurnArrow = msg.match(/Player turn:\s*\d+\s*->\(\s*\d+\s*\)->\s*(\d+)/i);
+            if (playerTurnArrow) {
+                return Number.parseInt(playerTurnArrow[1], 10);
+            }
+
+            const playerTurnSimple = msg.match(/Player turn:\s*(\d+)\b/i);
+            if (playerTurnSimple) {
+                return Number.parseInt(playerTurnSimple[1], 10);
+            }
+
+            return null;
+        }
+
+        function collectRunWinRateRecords(content, userId) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const runs = new Map();
+            let currentRun = 0;
+
+            const ensureRun = (runNo) => {
+                if (!runs.has(runNo)) {
+                    runs.set(runNo, {
+                        userId,
+                        runNo,
+                        depth: null,
+                        used: { sonarChecker: false, passiveSonar: false, lineScanner: false },
+                        anyItem: false,
+                        hasMemo: false,
+                        hasWrongSubmit: false,
+                        hasGameEnd: false
+                    });
+                }
+                return runs.get(runNo);
+            };
+
+            for (const entry of entries) {
+                const msg = entry.message || '';
+                const lowerMsg = msg.toLowerCase();
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (r === 1) {
+                        currentRun += 1;
+                    } else if (currentRun === 0) {
+                        currentRun = 1;
+                    }
+                }
+
+                if (currentRun <= 0) {
+                    continue;
+                }
+                const rec = ensureRun(currentRun);
+
+                const depth = parseDepthFromMessage(msg);
+                if (Number.isFinite(depth)) {
+                    rec.depth = depth;
+                }
+
+                const item = classifyQueryItem(msg);
+                if (item) {
+                    rec.used[item] = true;
+                    rec.anyItem = true;
+                }
+
+                if (msg.includes('Collect: Memo')) {
+                    rec.hasMemo = true;
+                }
+                if (lowerMsg.includes('wrong submit')) {
+                    rec.hasWrongSubmit = true;
+                }
+                if (msg.includes('Game end: Go to title')) {
+                    rec.hasGameEnd = true;
+                }
+            }
+
+            return Array.from(runs.values()).map(rec => ({
+                ...rec,
+                won: rec.hasMemo && !rec.hasWrongSubmit
+            }));
+        }
+
+        function aggregateDepthWinRateData(playerSummaries) {
+            const records = [];
+            playerSummaries.forEach(player => {
+                records.push(...collectRunWinRateRecords(player.content, player.userId));
+            });
+
+            const runNumbers = Array.from(new Set(records.map(r => r.runNo))).sort((a, b) => a - b);
+            return { runNumbers, records };
+        }
+
+        function renderDepthWinRateStats(playerSummaries) {
+            cachedDepthWinRateData = aggregateDepthWinRateData(playerSummaries);
+            renderDepthRunSelector();
+            renderSelectedDepthWinRate();
+        }
+
+        function renderDepthRunSelector() {
+            const selectEl = document.getElementById('depthRunSelect');
+            const contentEl = document.getElementById('depthWinRateContent');
+            const ordinal = (n) => {
+                const v = n % 100;
+                if (v >= 11 && v <= 13) return `${n}th`;
+                if (n % 10 === 1) return `${n}st`;
+                if (n % 10 === 2) return `${n}nd`;
+                if (n % 10 === 3) return `${n}rd`;
+                return `${n}th`;
+            };
+
+            if (!cachedDepthWinRateData || cachedDepthWinRateData.runNumbers.length === 0) {
+                selectEl.innerHTML = '';
+                contentEl.innerHTML = '<div class="empty-state"><h4>No run data</h4><p>No run/depth information found in logs.</p></div>';
+                return;
+            }
+
+            const runOptionsHtml = cachedDepthWinRateData.runNumbers
+                .map(runNo => `<option value="${runNo}">${ordinal(runNo)} run</option>`)
+                .join('');
+            selectEl.innerHTML = `<option value="all">All runs</option>${runOptionsHtml}`;
+            if (selectEl.options.length > 0) {
+                selectEl.options[0].selected = true;
+            }
+
+            selectEl.onchange = () => renderSelectedDepthWinRate();
+            ['depthToggleSonarChecker', 'depthTogglePassiveSonar', 'depthToggleLineScanner', 'depthToggleNoItem']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.onchange = () => renderSelectedDepthWinRate();
+                });
+        }
+
+        function renderSelectedDepthWinRate() {
+            const contentEl = document.getElementById('depthWinRateContent');
+            const selectEl = document.getElementById('depthRunSelect');
+            if (!cachedDepthWinRateData) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No data</h4><p>Depth win rate data is unavailable.</p></div>';
+                return;
+            }
+
+            const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+            const selectedRuns = selectedValues.includes('all')
+                ? [...cachedDepthWinRateData.runNumbers]
+                : selectedValues.map(v => Number.parseInt(v, 10)).filter(Number.isFinite);
+            if (selectedRuns.length === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>Select at least one run</h4><p>Choose one or more run(s) from the list.</p></div>';
+                return;
+            }
+
+            const toggles = [
+                { id: 'depthToggleSonarChecker', key: 'sonarChecker', label: 'Sonar Checker used', color: '#1f77b4', pred: r => r.used.sonarChecker },
+                { id: 'depthTogglePassiveSonar', key: 'passiveSonar', label: 'Passive Sonar used', color: '#9467bd', pred: r => r.used.passiveSonar },
+                { id: 'depthToggleLineScanner', key: 'lineScanner', label: 'Line Scanner used', color: '#d62728', pred: r => r.used.lineScanner },
+                { id: 'depthToggleNoItem', key: 'noItem', label: 'No item used', color: '#2ca02c', pred: r => !r.anyItem }
+            ];
+
+            const selectedCategories = toggles.filter(t => {
+                const checkbox = document.getElementById(t.id);
+                return checkbox && checkbox.checked;
+            });
+
+            if (selectedCategories.length === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No category selected</h4><p>Enable at least one toggle.</p></div>';
+                return;
+            }
+
+            const runSet = new Set(selectedRuns);
+            const baseRecords = cachedDepthWinRateData.records.filter(r => runSet.has(r.runNo) && Number.isFinite(r.depth) && r.depth >= 1 && r.depth <= 20);
+            if (baseRecords.length === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No depth records</h4><p>No matching run records with depth information.</p></div>';
+                return;
+            }
+
+            const series = selectedCategories.map(cat => {
+                const counts = Array(20).fill(0);
+                const wins = Array(20).fill(0);
+                baseRecords.forEach(r => {
+                    if (!cat.pred(r)) return;
+                    const idx = r.depth - 1;
+                    counts[idx] += 1;
+                    if (r.won) wins[idx] += 1;
+                });
+                const rates = counts.map((c, i) => c > 0 ? (wins[i] / c) * 100 : null);
+                return { ...cat, counts, wins, rates };
+            }).filter(s => s.counts.some(c => c > 0));
+
+            if (series.length === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No matching records</h4><p>Selected toggles do not match any records in chosen run(s).</p></div>';
+                return;
+            }
+
+            const legendHtml = series.map(s => {
+                const total = s.counts.reduce((a, b) => a + b, 0);
+                const wins = s.wins.reduce((a, b) => a + b, 0);
+                const overall = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
+                return `<span class="depth-legend-item"><span class="depth-legend-swatch" style="background:${s.color};"></span>${s.label} (${overall}% , n=${total})</span>`;
+            }).join('');
+
+            const headerCols = series.map(s => `<th>${s.label}</th>`).join('');
+            const rowsHtml = Array.from({ length: 20 }, (_, i) => i + 1).map(depth => {
+                const cols = series.map(s => {
+                    const idx = depth - 1;
+                    const cnt = s.counts[idx];
+                    const win = s.wins[idx];
+                    if (cnt === 0) {
+                        return '<td>-</td>';
+                    }
+                    const pct = ((win / cnt) * 100).toFixed(1);
+                    return `<td>${pct}% (${win}/${cnt})</td>`;
+                }).join('');
+                return `<tr><td>${depth}</td>${cols}</tr>`;
+            }).join('');
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Depth-wise win rate for selected run(s). Win condition: run has "Collect: Memo" and no "wrong submit".</div>
+                <div class="depth-table-wrap">
+                    <table class="depth-table">
+                        <thead>
+                            <tr>
+                                <th>Depth</th>
+                                ${headerCols}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="depth-legend">${legendHtml}</div>
+            `;
+        }
+
+        function startAutoRefresh() {
+            if (autoRefreshIntervalId !== null) return;
+            autoRefreshIntervalId = setInterval(loadLogs, 10000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshIntervalId === null) return;
+            clearInterval(autoRefreshIntervalId);
+            autoRefreshIntervalId = null;
+        }
+
+        function handleAutoRefreshToggle() {
+            const toggle = document.getElementById('autoRefreshToggle');
+            if (toggle && toggle.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        // Auto-refresh every 10 seconds (toggleable)
+        startAutoRefresh();
 
         // Initial load
         loadLogs();
