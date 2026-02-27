@@ -501,13 +501,51 @@
 
         .board-pair {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1.2fr;
             gap: 16px;
         }
 
         .board-panel h4 {
             margin-bottom: 8px;
             color: #40507d;
+            text-align: center;
+        }
+
+        .board-query-panel {
+            border: 1px solid #d7deff;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fbfcff;
+        }
+
+        .board-query-panel h4 {
+            margin-bottom: 8px;
+            color: #40507d;
+            text-align: center;
+        }
+
+        .board-query-wrap {
+            max-height: 190px;
+            overflow: auto;
+        }
+
+        .board-query-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82em;
+        }
+
+        .board-query-table th,
+        .board-query-table td {
+            border: 1px solid #dfe5ff;
+            padding: 4px 6px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .board-query-table th {
+            background: #f3f6ff;
+            color: #3f4c72;
         }
 
         .board-grid {
@@ -2382,6 +2420,11 @@
                 return m ? m[1].toUpperCase() : null;
             };
 
+            const parsePlayerTurnLabel = (msg) => {
+                const m = (msg || '').match(/Player turn:\s*(.+)$/i);
+                return m ? m[1].trim() : null;
+            };
+
             playerSummaries.forEach(player => {
                 const entries = (player.content || [])
                     .map(extractTimestampMs)
@@ -2391,6 +2434,8 @@
                 let runNo = 0;
                 let floorNo = null;
                 let pendingEnemy = null;
+                let pendingTurnLabel = null;
+                let pendingTurnNo = 0;
 
                 entries.forEach(entry => {
                     const msg = entry.message || '';
@@ -2409,9 +2454,31 @@
                         pendingEnemy = {
                             enemy,
                             runNo: runNo || 1,
-                            floorNo: floorNo || '?'
+                            floorNo: floorNo || '?',
+                            queriesByTurn: []
                         };
+                        pendingTurnLabel = null;
+                        pendingTurnNo = 0;
                         return;
+                    }
+
+                    if (pendingEnemy) {
+                        const turnLabel = parsePlayerTurnLabel(msg);
+                        if (turnLabel) {
+                            pendingTurnNo += 1;
+                            pendingTurnLabel = turnLabel;
+                        } else if (/^Query:/i.test(msg)) {
+                            if (!pendingTurnLabel) {
+                                pendingTurnNo += 1;
+                                pendingTurnLabel = '?';
+                            }
+                            let turnBucket = pendingEnemy.queriesByTurn.find(t => t.turnNo === pendingTurnNo);
+                            if (!turnBucket) {
+                                turnBucket = { turnNo: pendingTurnNo, turnLabel: pendingTurnLabel, queries: [] };
+                                pendingEnemy.queriesByTurn.push(turnBucket);
+                            }
+                            turnBucket.queries.push(msg.replace(/^Query:\s*/i, ''));
+                        }
                     }
 
                     const guess = parseGuess(msg);
@@ -2421,9 +2488,12 @@
                             runNo: pendingEnemy.runNo,
                             floorNo: pendingEnemy.floorNo,
                             enemy: pendingEnemy.enemy,
-                            guess
+                            guess,
+                            queriesByTurn: pendingEnemy.queriesByTurn
                         });
                         pendingEnemy = null;
+                        pendingTurnLabel = null;
+                        pendingTurnNo = 0;
                     }
                 });
             });
@@ -2450,8 +2520,8 @@
         function toBoardCells(boardString) {
             const showSymbol = (ch) => {
                 if (ch === 'E') return '';
-                if (ch === 'B') return '/';
-                if (ch === 'S') return '\\';
+                if (ch === 'B') return '\\';
+                if (ch === 'S') return '/';
                 if (ch === 'X') return 'X';
                 if (ch === 'O') return 'O';
                 if (ch === '@') return '@';
@@ -2462,6 +2532,23 @@
                 const symbol = showSymbol(ch);
                 const cls = symbol ? '' : ' empty';
                 return `<div class="board-cell${cls}">${symbol}</div>`;
+            }).join('');
+        }
+
+        function renderBoardQueryRows(queriesByTurn) {
+            const groups = queriesByTurn || [];
+            if (groups.length === 0) {
+                return `<tr><td colspan="2">No query logs between enemy/guess board.</td></tr>`;
+            }
+
+            return groups.map(group => {
+                const queryText = group.queries.length > 0 ? group.queries.join('<br>') : '-';
+                return `
+                    <tr>
+                        <td>T${group.turnNo} (${group.turnLabel})</td>
+                        <td>${queryText}</td>
+                    </tr>
+                `;
             }).join('');
         }
 
@@ -2511,6 +2598,22 @@
                     <div class="board-panel">
                         <h4>Guess Board</h4>
                         <div class="board-grid">${toBoardCells(pick.guess)}</div>
+                    </div>
+                    <div class="board-query-panel">
+                        <h4>Query Log by Turn</h4>
+                        <div class="board-query-wrap">
+                            <table class="board-query-table">
+                                <thead>
+                                    <tr>
+                                        <th>Turn</th>
+                                        <th>Queries</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${renderBoardQueryRows(pick.queriesByTurn)}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
