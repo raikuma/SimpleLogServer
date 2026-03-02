@@ -981,6 +981,27 @@
         let selectedItemEnemies = new Set(['all']);
         let autoRefreshIntervalId = null;
 
+        const DEFAULT_API_HOST = 'http://localhost:3333';
+
+        function resolveApiHostFromQuery() {
+            const query = window.location.search || '';
+            const params = new URLSearchParams(query);
+            const keyedHost = (params.get('host') || params.get('url') || '').trim();
+
+            let host = keyedHost;
+            if (!host && query.length > 1 && !query.includes('=')) {
+                host = decodeURIComponent(query.slice(1)).trim();
+            }
+
+            if (!host) {
+                return DEFAULT_API_HOST;
+            }
+
+            return host.replace(/\/+$/, '');
+        }
+
+        const API_HOST = resolveApiHostFromQuery();
+
         // Load list of log files
         async function loadLogs() {
             const statusEl = document.getElementById('status');
@@ -994,7 +1015,7 @@
                     versionFilterOptionsEl.innerHTML = '<span style="color:#666; font-size:0.9em;">Loading...</span>';
                 }
                 
-                const response = await fetch('/api/logs');
+                const response = await fetch(`${API_HOST}/api/logs`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1071,7 +1092,7 @@
                 contentTitleEl.textContent = `Loading ${userId}'s logs...`;
                 logContentEl.innerHTML = '<div class="loading">Loading log content...</div>';
                 
-                const response = await fetch(`/api/logs/${userId}`);
+                const response = await fetch(`${API_HOST}/api/logs/${userId}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1170,7 +1191,7 @@
                 
                 // Create a link element and trigger download
                 const link = document.createElement('a');
-                link.href = '/api/logs/download';
+                link.href = `${API_HOST}/api/logs/download`;
                 link.download = ''; // Let the server determine filename
                 document.body.appendChild(link);
                 link.click();
@@ -1555,7 +1576,7 @@
 
             try {
                 const results = await Promise.all(logs.map(async (log) => {
-                    const response = await fetch(`/api/logs/${log.user_id}`);
+                    const response = await fetch(`${API_HOST}/api/logs/${log.user_id}`);
                     const data = await response.json();
                     if (!data.success) {
                         throw new Error(data.error || `Failed to load ${log.user_id}`);
