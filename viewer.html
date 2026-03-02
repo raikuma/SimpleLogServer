@@ -1786,6 +1786,8 @@
                 const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
                 if (enemyMatch) {
                     currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                    // Turn index should be relative to the current enemy encounter.
+                    turnIndex = 0;
                 }
                 const roundMatch = msg.match(/Round:\s*([123])\b/i);
                 if (roundMatch) {
