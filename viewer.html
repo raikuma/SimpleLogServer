@@ -841,7 +841,7 @@
             <button id="clearBtn" onclick="clearView()">🗑️ Clear View</button>
             <button id="downloadBtn" onclick="downloadLogs()">📦 Download ZIP</button>
             <label style="margin-left: 8px; color: #444; font-size: 0.95em;">
-                <input type="checkbox" id="autoRefreshToggle" checked onchange="handleAutoRefreshToggle()">
+                <input type="checkbox" id="autoRefreshToggle" onchange="handleAutoRefreshToggle()">
                 Auto Refresh (10s)
             </label>
             <span id="status" style="margin-left: 20px; color: #666;"></span>
@@ -884,11 +884,23 @@
 
         <div class="heatmap-section" id="queryHeatmapSection">
             <h3>Query Counts by Turn Heatmap</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="turnHeatmapRunSelect">Select run(s):</label>
+                <select id="turnHeatmapRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="turnHeatmapEnemySelect">Select Enemy(s):</label>
+                <select id="turnHeatmapEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
             <div id="queryHeatmapContent" class="loading">Loading query heatmap...</div>
         </div>
 
         <div class="heatmap-section" id="queryTransitionSection">
             <h3>Query Transition Heatmap (A -> C)</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="transitionHeatmapRunSelect">Select run(s):</label>
+                <select id="transitionHeatmapRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="transitionHeatmapEnemySelect">Select Enemy(s):</label>
+                <select id="transitionHeatmapEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
             <div id="queryTransitionContent" class="loading">Loading query transition heatmap...</div>
         </div>
 
@@ -922,12 +934,18 @@
         </div>
 
         <div class="item-section" id="itemStatsSection">
-            <h3>Item Usage by Round/Turn (1-10)</h3>
+            <h3>Item Usage by Enemy/Turn (1-10)</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="itemRunSelect">Select run(s):</label>
+                <select id="itemRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="itemEnemySelect">Select Enemy(s):</label>
+                <select id="itemEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
             <div id="itemStatsContent" class="loading">Loading item usage stats...</div>
         </div>
 
         <div class="depth-section" id="depthWinRateSection">
-            <h3>Depth Win Rate</h3>
+            <h3>Enemy Win Rate</h3>
             <div class="depth-controls">
                 <div>
                     <label for="depthRunSelect">Select run(s):</label><br>
@@ -940,7 +958,7 @@
                     <label><input type="checkbox" id="depthToggleNoItem" checked> No item used</label>
                 </div>
             </div>
-            <div id="depthWinRateContent" class="loading">Loading depth win rate stats...</div>
+            <div id="depthWinRateContent" class="loading">Loading enemy win rate stats...</div>
         </div>
     </div>
 
@@ -955,6 +973,12 @@
         let cachedBoardPairs = [];
         let currentLuckyIndex = -1;
         let cachedDepthWinRateData = null;
+        let selectedTurnHeatmapRuns = new Set();
+        let selectedTransitionHeatmapRuns = new Set();
+        let selectedTurnHeatmapEnemies = new Set();
+        let selectedTransitionHeatmapEnemies = new Set();
+        let selectedItemRuns = new Set(['all']);
+        let selectedItemEnemies = new Set(['all']);
         let autoRefreshIntervalId = null;
 
         // Load list of log files
@@ -1282,6 +1306,7 @@
 
             renderLifetimeHistogram(filteredPlayers);
             renderProgressStats(filteredPlayers);
+            renderHeatmapRunSelectors(filteredPlayers);
             renderTurnQueryHeatmap(filteredPlayers);
             renderQueryTransitionHeatmap(filteredPlayers);
             renderOxygenTrends(filteredPlayers);
@@ -1289,6 +1314,143 @@
             prepareLuckyBoardPairs(filteredPlayers);
             renderItemUsageStats(filteredPlayers);
             renderDepthWinRateStats(filteredPlayers);
+        }
+
+        function collectAvailableRunNumbers(playerSummaries) {
+            const runSet = new Set();
+            (playerSummaries || []).forEach(player => {
+                const entries = (player.content || [])
+                    .map(extractTimestampMs)
+                    .filter(Boolean)
+                    .sort((a, b) => a.ts - b.ts);
+
+                let runNo = 0;
+                let sawQueryable = false;
+                entries.forEach(entry => {
+                    const msg = entry.message || '';
+                    const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                    if (roundMatch) {
+                        const r = Number.parseInt(roundMatch[1], 10);
+                        if (r === 1) runNo += 1;
+                        else if (runNo === 0) runNo = 1;
+                        runSet.add(runNo);
+                    }
+                    if (/^Query:/i.test(msg) || msg.includes('Player turn:')) {
+                        sawQueryable = true;
+                        if (runNo === 0) runNo = 1;
+                        runSet.add(runNo);
+                    }
+                });
+                if (runNo === 0 && sawQueryable) {
+                    runSet.add(1);
+                }
+            });
+
+            return Array.from(runSet).sort((a, b) => a - b);
+        }
+
+        function collectAvailableEnemyNumbers(playerSummaries) {
+            const enemySet = new Set();
+            (playerSummaries || []).forEach(player => {
+                (player.content || []).forEach(entry => {
+                    const parsed = parseLogEntry(entry);
+                    const msg = parsed.message || '';
+                    const m = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                    if (m) {
+                        enemySet.add(Number.parseInt(m[1], 10));
+                    }
+                });
+            });
+            return Array.from(enemySet).sort((a, b) => a - b);
+        }
+
+        function normalizeSelectedRuns(selectedSet, availableRuns) {
+            if (availableRuns.length === 0) return new Set();
+            if (!selectedSet || selectedSet.size === 0) return new Set(['all']);
+            if (selectedSet.has('all')) return new Set(['all']);
+            const kept = new Set(Array.from(selectedSet).filter(v => availableRuns.includes(Number(v))).map(v => String(v)));
+            return kept.size > 0 ? kept : new Set(['all']);
+        }
+
+        function normalizeSelectedEnemies(selectedSet, availableEnemies) {
+            if (availableEnemies.length === 0) return new Set();
+            if (!selectedSet || selectedSet.size === 0) return new Set(['all']);
+            if (selectedSet.has('all')) return new Set(['all']);
+            const kept = new Set(Array.from(selectedSet).filter(v => availableEnemies.includes(Number(v))).map(v => String(v)));
+            return kept.size > 0 ? kept : new Set(['all']);
+        }
+
+        function renderRunSelectOptions(selectEl, availableRuns, selectedSet, onChange, labelBuilder, allLabel) {
+            if (!selectEl) return;
+            const toLabel = labelBuilder || ((v) => `${v} run`);
+            const runOptions = availableRuns.map(runNo => `<option value="${runNo}">${toLabel(runNo)}</option>`).join('');
+            const firstLabel = allLabel || 'All runs';
+            selectEl.innerHTML = `<option value="all">${firstLabel}</option>${runOptions}`;
+            Array.from(selectEl.options).forEach(opt => {
+                opt.selected = selectedSet.has(opt.value);
+            });
+            enableToggleSelect(selectEl);
+            selectEl.onchange = onChange;
+        }
+
+        function renderHeatmapRunSelectors(playerSummaries) {
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            const turnSelect = document.getElementById('turnHeatmapRunSelect');
+            const transitionSelect = document.getElementById('transitionHeatmapRunSelect');
+            const turnEnemySelect = document.getElementById('turnHeatmapEnemySelect');
+            const transitionEnemySelect = document.getElementById('transitionHeatmapEnemySelect');
+
+            selectedTurnHeatmapRuns = normalizeSelectedRuns(selectedTurnHeatmapRuns, availableRuns);
+            selectedTransitionHeatmapRuns = normalizeSelectedRuns(selectedTransitionHeatmapRuns, availableRuns);
+            selectedTurnHeatmapEnemies = normalizeSelectedEnemies(selectedTurnHeatmapEnemies, availableEnemies);
+            selectedTransitionHeatmapEnemies = normalizeSelectedEnemies(selectedTransitionHeatmapEnemies, availableEnemies);
+
+            renderRunSelectOptions(turnSelect, availableRuns, selectedTurnHeatmapRuns, () => {
+                selectedTurnHeatmapRuns = new Set(Array.from(turnSelect.selectedOptions).map(o => o.value));
+                if (selectedTurnHeatmapRuns.size === 0) selectedTurnHeatmapRuns = new Set(['all']);
+                if (selectedTurnHeatmapRuns.has('all') && selectedTurnHeatmapRuns.size > 1) selectedTurnHeatmapRuns = new Set(['all']);
+                Array.from(turnSelect.options).forEach(opt => { opt.selected = selectedTurnHeatmapRuns.has(opt.value); });
+                renderTurnQueryHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(transitionSelect, availableRuns, selectedTransitionHeatmapRuns, () => {
+                selectedTransitionHeatmapRuns = new Set(Array.from(transitionSelect.selectedOptions).map(o => o.value));
+                if (selectedTransitionHeatmapRuns.size === 0) selectedTransitionHeatmapRuns = new Set(['all']);
+                if (selectedTransitionHeatmapRuns.has('all') && selectedTransitionHeatmapRuns.size > 1) selectedTransitionHeatmapRuns = new Set(['all']);
+                Array.from(transitionSelect.options).forEach(opt => { opt.selected = selectedTransitionHeatmapRuns.has(opt.value); });
+                renderQueryTransitionHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(turnEnemySelect, availableEnemies, selectedTurnHeatmapEnemies, () => {
+                selectedTurnHeatmapEnemies = new Set(Array.from(turnEnemySelect.selectedOptions).map(o => o.value));
+                if (selectedTurnHeatmapEnemies.size === 0) selectedTurnHeatmapEnemies = new Set(['all']);
+                if (selectedTurnHeatmapEnemies.has('all') && selectedTurnHeatmapEnemies.size > 1) selectedTurnHeatmapEnemies = new Set(['all']);
+                Array.from(turnEnemySelect.options).forEach(opt => { opt.selected = selectedTurnHeatmapEnemies.has(opt.value); });
+                renderTurnQueryHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            renderRunSelectOptions(transitionEnemySelect, availableEnemies, selectedTransitionHeatmapEnemies, () => {
+                selectedTransitionHeatmapEnemies = new Set(Array.from(transitionEnemySelect.selectedOptions).map(o => o.value));
+                if (selectedTransitionHeatmapEnemies.size === 0) selectedTransitionHeatmapEnemies = new Set(['all']);
+                if (selectedTransitionHeatmapEnemies.has('all') && selectedTransitionHeatmapEnemies.size > 1) selectedTransitionHeatmapEnemies = new Set(['all']);
+                Array.from(transitionEnemySelect.options).forEach(opt => { opt.selected = selectedTransitionHeatmapEnemies.has(opt.value); });
+                renderQueryTransitionHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+        }
+
+        function resolveSelectedRunsForHeatmap(selectedSet, availableRuns) {
+            if (!selectedSet || selectedSet.size === 0 || selectedSet.has('all')) {
+                return new Set(availableRuns);
+            }
+            return new Set(Array.from(selectedSet).map(v => Number.parseInt(v, 10)).filter(Number.isFinite));
+        }
+
+        function resolveSelectedEnemiesForHeatmap(selectedSet, availableEnemies) {
+            if (!selectedSet || selectedSet.size === 0 || selectedSet.has('all')) {
+                return new Set(availableEnemies);
+            }
+            return new Set(Array.from(selectedSet).map(v => Number.parseInt(v, 10)).filter(Number.isFinite));
         }
 
         function isVersionedApplicationStart(message) {
@@ -1389,7 +1551,7 @@
             electricityChartEl.innerHTML = '<div class="loading">Calculating electricity trend stats...</div>';
             luckyEl.innerHTML = '<div class="loading">Collecting enemy/guess board pairs...</div>';
             itemStatsEl.innerHTML = '<div class="loading">Calculating item usage stats...</div>';
-            depthWinRateEl.innerHTML = '<div class="loading">Calculating depth win rate stats...</div>';
+            depthWinRateEl.innerHTML = '<div class="loading">Calculating enemy win rate stats...</div>';
 
             try {
                 const results = await Promise.all(logs.map(async (log) => {
@@ -1457,7 +1619,7 @@
 
         function renderDepthWinRateError(message) {
             const depthWinRateEl = document.getElementById('depthWinRateContent');
-            depthWinRateEl.innerHTML = `<div class="error">Error loading depth win rate: ${message}</div>`;
+            depthWinRateEl.innerHTML = `<div class="error">Error loading enemy win rate: ${message}</div>`;
         }
 
         function renderLifetimeHistogram(playerSummaries) {
@@ -1596,7 +1758,7 @@
             `;
         }
 
-        function collectTurnQueryStats(content, maxTurn, maxQuery) {
+        function collectTurnQueryStats(content, maxTurn, maxQuery, selectedRunsSet, selectedEnemiesSet) {
             const entries = (content || [])
                 .map(extractTimestampMs)
                 .filter(Boolean)
@@ -1605,6 +1767,10 @@
             const rows = Array.from({ length: maxTurn }, () => Array(maxQuery).fill(0));
             let turnIndex = 0;
             let turnsFound = 0;
+            let runNo = 0;
+            let currentEnemy = null;
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
 
             const parseQueryInputNumber = (message) => {
                 const match = (message || '').match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*\d+/i);
@@ -1617,6 +1783,24 @@
 
             for (const entry of entries) {
                 const msg = entry.message || '';
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                }
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const roundNo = Number.parseInt(roundMatch[1], 10);
+                    if (roundNo === 1) {
+                        runNo += 1;
+                        turnIndex = 0;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                }
+                if (runNo === 0 && (/^Query:/i.test(msg) || msg.includes('Player turn:'))) {
+                    runNo = 1;
+                }
+
                 if (msg.includes('Game start')) {
                     turnIndex = 0;
                     continue;
@@ -1627,10 +1811,15 @@
                 }
                 if (msg.includes('Player turn:')) {
                     turnIndex += 1;
-                    turnsFound += 1;
+                    if (isRunSelected(runNo) && isEnemySelected(currentEnemy)) {
+                        turnsFound += 1;
+                    }
                     continue;
                 }
                 if (msg.includes('Query:') && turnIndex > 0 && turnIndex <= maxTurn) {
+                    if (!isRunSelected(runNo) || !isEnemySelected(currentEnemy)) {
+                        continue;
+                    }
                     const inputNumber = parseQueryInputNumber(msg);
                     if (inputNumber === null) {
                         continue;
@@ -1648,9 +1837,13 @@
             const maxQuery = 20;
             const matrix = Array.from({ length: maxTurn }, () => Array(maxQuery).fill(0));
             let totalTurns = 0;
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const runSet = resolveSelectedRunsForHeatmap(selectedTurnHeatmapRuns, availableRuns);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            const enemySet = resolveSelectedEnemiesForHeatmap(selectedTurnHeatmapEnemies, availableEnemies);
 
             playerSummaries.forEach(player => {
-                const stats = collectTurnQueryStats(player.content, maxTurn, maxQuery);
+                const stats = collectTurnQueryStats(player.content, maxTurn, maxQuery, runSet, enemySet);
                 totalTurns += stats.turnsFound;
                 for (let r = 0; r < maxTurn; r += 1) {
                     for (let c = 0; c < maxQuery; c += 1) {
@@ -1703,7 +1896,7 @@
             `;
         }
 
-        function collectQueryTransitions(content, maxNumber) {
+        function collectQueryTransitions(content, maxNumber, selectedRunsSet, selectedEnemiesSet) {
             const entries = (content || [])
                 .map(extractTimestampMs)
                 .filter(Boolean)
@@ -1711,11 +1904,35 @@
 
             const rows = Array.from({ length: maxNumber }, () => Array(maxNumber).fill(0));
             let transitionCount = 0;
+            let runNo = 0;
+            let currentEnemy = null;
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
 
             entries.forEach(entry => {
                 const msg = entry.message || '';
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                }
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const roundNo = Number.parseInt(roundMatch[1], 10);
+                    if (roundNo === 1) {
+                        runNo += 1;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                }
+                if (runNo === 0 && /^Query:/i.test(msg)) {
+                    runNo = 1;
+                }
+
                 const m = msg.match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*(\d+)/i);
                 if (!m) {
+                    return;
+                }
+                if (!isRunSelected(runNo) || !isEnemySelected(currentEnemy)) {
                     return;
                 }
                 const start = Number.parseInt(m[1], 10);
@@ -1738,9 +1955,13 @@
             const maxNumber = 20;
             const matrix = Array.from({ length: maxNumber }, () => Array(maxNumber).fill(0));
             let totalTransitions = 0;
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const runSet = resolveSelectedRunsForHeatmap(selectedTransitionHeatmapRuns, availableRuns);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            const enemySet = resolveSelectedEnemiesForHeatmap(selectedTransitionHeatmapEnemies, availableEnemies);
 
             playerSummaries.forEach(player => {
-                const stats = collectQueryTransitions(player.content, maxNumber);
+                const stats = collectQueryTransitions(player.content, maxNumber, runSet, enemySet);
                 totalTransitions += stats.transitionCount;
                 for (let r = 0; r < maxNumber; r += 1) {
                     for (let c = 0; c < maxNumber; c += 1) {
@@ -1997,6 +2218,58 @@
             return aggregateRunRoundResource(playerSummaries, collectPlayerRunRoundElectricity);
         }
 
+        function combineRunStats(runStatsMap, runNos) {
+            const out = {};
+            [1, 2, 3, 'end'].forEach(key => {
+                let totalCount = 0;
+                let weightedSum = 0;
+                runNos.forEach(runNo => {
+                    const stat = runStatsMap.get(runNo);
+                    if (!stat) return;
+                    const point = stat[key];
+                    if (!point || !Number.isFinite(point.avg) || !Number.isFinite(point.count) || point.count <= 0) return;
+                    totalCount += point.count;
+                    weightedSum += (point.avg * point.count);
+                });
+                out[key] = {
+                    avg: totalCount > 0 ? (weightedSum / totalCount) : null,
+                    count: totalCount
+                };
+            });
+            return out;
+        }
+
+        function enableToggleSelect(selectEl) {
+            if (!selectEl || selectEl.dataset.toggleSelectBound === '1') return;
+            selectEl.dataset.toggleSelectBound = '1';
+            selectEl.addEventListener('mousedown', (e) => {
+                const option = e.target.closest('option');
+                if (!option) return;
+                e.preventDefault();
+
+                const options = Array.from(selectEl.options);
+                const isAllOption = option.value === 'all';
+
+                if (isAllOption) {
+                    // Selecting "all" clears other run selections.
+                    options.forEach(opt => { opt.selected = (opt.value === 'all'); });
+                } else {
+                    // Toggle specific run and clear "all".
+                    option.selected = !option.selected;
+                    const allOption = options.find(opt => opt.value === 'all');
+                    if (allOption) allOption.selected = false;
+
+                    // If nothing left selected, fall back to "all".
+                    const anySelected = options.some(opt => opt.selected && opt.value !== 'all');
+                    if (!anySelected && allOption) {
+                        allOption.selected = true;
+                    }
+                }
+
+                selectEl.dispatchEvent(new Event('change'));
+            });
+        }
+
         function renderOxygenTrends(playerSummaries) {
             cachedOxygenRunStats = aggregateRunRoundOxygen(playerSummaries);
             renderOxygenRunSelector();
@@ -2029,6 +2302,7 @@
                 .map(runNo => `<option value="${runNo}">${ordinal(runNo)} run average</option>`)
                 .join('');
             selectEl.innerHTML = `<option value="all">All runs</option>${runOptionsHtml}`;
+            enableToggleSelect(selectEl);
 
             if (selectEl.options.length > 0) {
                 selectEl.options[0].selected = true;
@@ -2054,7 +2328,8 @@
             }
 
             const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
-            const selectedRuns = selectedValues.includes('all')
+            const hasAll = selectedValues.includes('all');
+            const selectedRuns = hasAll
                 ? [...cachedOxygenRunStats.runNumbers]
                 : selectedValues.map(v => Number.parseInt(v, 10)).filter(Number.isFinite);
             if (selectedRuns.length === 0) {
@@ -2069,11 +2344,17 @@
                 { key: 3, label: 'Round 3' },
                 { key: 'end', label: 'End Game' }
             ];
-            const series = selectedRuns.map((runNo, idx) => ({
-                runNo,
-                color: palette[idx % palette.length],
-                stat: cachedOxygenRunStats.runStats.get(runNo)
-            })).filter(s => !!s.stat);
+            const series = hasAll
+                ? [{
+                    runNo: 'All',
+                    color: '#1f77b4',
+                    stat: combineRunStats(cachedOxygenRunStats.runStats, selectedRuns)
+                }]
+                : selectedRuns.map((runNo, idx) => ({
+                    runNo,
+                    color: palette[idx % palette.length],
+                    stat: cachedOxygenRunStats.runStats.get(runNo)
+                })).filter(s => !!s.stat);
 
             const adjustedColorMap = {
                 '#1f77b4': '#5fa5d6',
@@ -2180,8 +2461,8 @@
             const legendHtml = series.map(s => {
                 const adjColor = adjustedColor(s.color);
                 return `
-                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>Run ${s.runNo} (Raw)</span>
-                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>Run ${s.runNo} (Adjusted)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>${s.runNo === 'All' ? 'All runs' : `Run ${s.runNo}`} (Raw)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>${s.runNo === 'All' ? 'All runs' : `Run ${s.runNo}`} (Adjusted)</span>
                 `;
             }).join('');
 
@@ -2232,6 +2513,7 @@
                 .map(runNo => `<option value="${runNo}">${ordinal(runNo)} run average</option>`)
                 .join('');
             selectEl.innerHTML = `<option value="all">All runs</option>${runOptionsHtml}`;
+            enableToggleSelect(selectEl);
 
             if (selectEl.options.length > 0) {
                 selectEl.options[0].selected = true;
@@ -2257,7 +2539,8 @@
             }
 
             const selectedValues = Array.from(selectEl.selectedOptions).map(opt => opt.value);
-            const selectedRuns = selectedValues.includes('all')
+            const hasAll = selectedValues.includes('all');
+            const selectedRuns = hasAll
                 ? [...cachedElectricityRunStats.runNumbers]
                 : selectedValues.map(v => Number.parseInt(v, 10)).filter(Number.isFinite);
             if (selectedRuns.length === 0) {
@@ -2272,11 +2555,17 @@
                 { key: 3, label: 'Round 3' },
                 { key: 'end', label: 'End Game' }
             ];
-            const series = selectedRuns.map((runNo, idx) => ({
-                runNo,
-                color: palette[idx % palette.length],
-                stat: cachedElectricityRunStats.runStats.get(runNo)
-            })).filter(s => !!s.stat);
+            const series = hasAll
+                ? [{
+                    runNo: 'All',
+                    color: '#1f77b4',
+                    stat: combineRunStats(cachedElectricityRunStats.runStats, selectedRuns)
+                }]
+                : selectedRuns.map((runNo, idx) => ({
+                    runNo,
+                    color: palette[idx % palette.length],
+                    stat: cachedElectricityRunStats.runStats.get(runNo)
+                })).filter(s => !!s.stat);
 
             const adjustedColorMap = {
                 '#1f77b4': '#5fa5d6',
@@ -2382,8 +2671,8 @@
             const legendHtml = series.map(s => {
                 const adjColor = adjustedColor(s.color);
                 return `
-                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>Run ${s.runNo} (Raw)</span>
-                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>Run ${s.runNo} (Adjusted)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>${s.runNo === 'All' ? 'All runs' : `Run ${s.runNo}`} (Raw)</span>
+                    <span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${adjColor};"></span>${s.runNo === 'All' ? 'All runs' : `Run ${s.runNo}`} (Adjusted)</span>
                 `;
             }).join('');
 
@@ -2657,6 +2946,14 @@
 
         function classifyQueryItem(message) {
             const msg = message || '';
+            if (/^Line scan:/i.test(msg)) {
+                return 'lineScanner';
+            }
+
+            if (/^Passive sonar:/i.test(msg)) {
+                return 'passiveSonar';
+            }
+
             if (!/^Query:/i.test(msg)) {
                 return null;
             }
@@ -2665,66 +2962,116 @@
                 return 'sonarChecker';
             }
 
-            if (/\|\s*[OX]\b/i.test(msg)) {
-                return 'lineScanner';
-            }
-
-            if (!msg.includes('-') && !msg.includes('|')) {
-                return 'passiveSonar';
-            }
-
             return null;
         }
 
-        function collectRoundItemUsage(content) {
+        function renderItemRunSelector(playerSummaries) {
+            const runSelectEl = document.getElementById('itemRunSelect');
+            const enemySelectEl = document.getElementById('itemEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedItemRuns = normalizeSelectedRuns(selectedItemRuns, availableRuns);
+            selectedItemEnemies = normalizeSelectedEnemies(selectedItemEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedItemRuns, () => {
+                selectedItemRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedItemRuns.size === 0) selectedItemRuns = new Set(['all']);
+                if (selectedItemRuns.has('all') && selectedItemRuns.size > 1) selectedItemRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedItemRuns.has(opt.value); });
+                renderItemUsageStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedItemEnemies, () => {
+                selectedItemEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedItemEnemies.size === 0) selectedItemEnemies = new Set(['all']);
+                if (selectedItemEnemies.has('all') && selectedItemEnemies.size > 1) selectedItemEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedItemEnemies.has(opt.value); });
+                renderItemUsageStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function collectEnemyTurnItemUsage(content, selectedRunSet, selectedEnemySet) {
             const entries = (content || [])
                 .map(extractTimestampMs)
                 .filter(Boolean)
                 .sort((a, b) => a.ts - b.ts);
 
-            const rounds = {
-                1: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
-                2: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
-                3: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) }
-            };
+            const byEnemy = {};
+            let runNo = 0;
+            let currentEnemy = null;
+            let turnInEnemy = 0;
 
-            let currentRound = null;
-            let turnInRound = 0;
+            const isRunSelected = (r) => !selectedRunSet || selectedRunSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemySet || selectedEnemySet.has(e);
+            const ensureEnemy = (enemyNo) => {
+                if (!byEnemy[enemyNo]) {
+                    byEnemy[enemyNo] = {
+                        sonarChecker: Array(10).fill(0),
+                        lineScanner: Array(10).fill(0),
+                        passiveSonar: Array(10).fill(0)
+                    };
+                }
+            };
 
             entries.forEach(entry => {
                 const msg = entry.message || '';
+
                 const roundMatch = msg.match(/Round:\s*([123])\b/i);
                 if (roundMatch) {
-                    currentRound = Number.parseInt(roundMatch[1], 10);
-                    turnInRound = 0;
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (r === 1) runNo += 1;
+                    else if (runNo === 0) runNo = 1;
+                }
+
+                if (runNo === 0 && (msg.includes('Player turn:') || /^Query:/i.test(msg) || /^Line scan:/i.test(msg) || /^Passive sonar:/i.test(msg))) {
+                    runNo = 1;
+                }
+
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                    turnInEnemy = 0;
                     return;
                 }
 
-                if (msg.includes('Player turn:') && currentRound && currentRound >= 1 && currentRound <= 3) {
-                    turnInRound += 1;
+                if (msg.includes('Game start') || msg.includes('Game end: Go to title') || /wrong submit/i.test(msg) || msg.includes('Collect: Memo')) {
+                    currentEnemy = null;
+                    turnInEnemy = 0;
                     return;
                 }
 
-                if (!currentRound || turnInRound <= 0 || turnInRound > 10) {
+                if (msg.includes('Player turn:')) {
+                    if (currentEnemy !== null && isRunSelected(runNo) && isEnemySelected(currentEnemy)) {
+                        turnInEnemy += 1;
+                    }
+                    return;
+                }
+
+                if (currentEnemy === null || !isRunSelected(runNo) || !isEnemySelected(currentEnemy) || turnInEnemy <= 0 || turnInEnemy > 10) {
                     return;
                 }
 
                 const item = classifyQueryItem(msg);
                 if (item) {
-                    rounds[currentRound][item][turnInRound - 1] += 1;
+                    ensureEnemy(currentEnemy);
+                    byEnemy[currentEnemy][item][turnInEnemy - 1] += 1;
                 }
             });
 
-            return rounds;
+            return byEnemy;
         }
 
-        function renderItemLineChart(title, itemKey, color, matrixByRound) {
-            const rounds = [1, 2, 3];
+        function renderItemLineChartByEnemy(title, itemKey, byEnemy, enemyKeys) {
             const turns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
             const allCounts = [];
-            rounds.forEach(r => turns.forEach(t => allCounts.push(matrixByRound[r][itemKey][t - 1])));
+            enemyKeys.forEach(enemy => turns.forEach(t => allCounts.push(byEnemy[enemy][itemKey][t - 1])));
             const maxCount = Math.max(...allCounts, 0);
             const yMax = Math.max(1, Math.ceil((maxCount + 1) / 2) * 2);
+
+            const palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#17becf', '#8c564b', '#bcbd22', '#e377c2', '#7f7f7f'];
+            const colorOfEnemy = (enemy, idx) => palette[idx % palette.length];
 
             const svgWidth = 760;
             const svgHeight = 280;
@@ -2750,21 +3097,20 @@
                 return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">T${turn}</text>`;
             }).join('');
 
-            const roundColors = {
-                1: color,
-                2: '#ff8c42',
-                3: '#2ca02c'
-            };
-
-            const lineHtml = rounds.map(roundNo => {
+            const lineHtml = enemyKeys.map((enemy, idx) => {
+                const color = colorOfEnemy(enemy, idx);
                 const points = turns.map(turn => ({
                     x: xForTurn(turn),
-                    y: yForCount(matrixByRound[roundNo][itemKey][turn - 1]),
-                    c: matrixByRound[roundNo][itemKey][turn - 1]
+                    y: yForCount(byEnemy[enemy][itemKey][turn - 1])
                 }));
-                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${roundColors[roundNo]}" stroke-width="2.5"></polyline>`;
-                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${roundColors[roundNo]}" stroke="#fff" stroke-width="1.2"></circle>`).join('');
+                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"></polyline>`;
+                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}" stroke="#fff" stroke-width="1.1"></circle>`).join('');
                 return `${poly}${dots}`;
+            }).join('');
+
+            const legendHtml = enemyKeys.map((enemy, idx) => {
+                const color = colorOfEnemy(enemy, idx);
+                return `<span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${color};"></span>Enemy ${enemy}</span>`;
             }).join('');
 
             return `
@@ -2779,75 +3125,74 @@
                             </svg>
                         </div>
                     </div>
+                    <div class="oxygen-legend">${legendHtml}</div>
                 </div>
             `;
         }
 
         function renderItemUsageStats(playerSummaries) {
             const itemStatsEl = document.getElementById('itemStatsContent');
-            const aggregate = {
-                1: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
-                2: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) },
-                3: { sonarChecker: Array(10).fill(0), lineScanner: Array(10).fill(0), passiveSonar: Array(10).fill(0) }
-            };
+            const { availableRuns, availableEnemies } = renderItemRunSelector(playerSummaries);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedItemRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedItemEnemies, availableEnemies);
+            const aggregateByEnemy = {};
 
             playerSummaries.forEach(player => {
-                const perRound = collectRoundItemUsage(player.content);
-                [1, 2, 3].forEach(roundNo => {
+                const perEnemy = collectEnemyTurnItemUsage(player.content, selectedRunSet, selectedEnemySet);
+                Object.keys(perEnemy).forEach(enemyKey => {
+                    if (!aggregateByEnemy[enemyKey]) {
+                        aggregateByEnemy[enemyKey] = {
+                            sonarChecker: Array(10).fill(0),
+                            lineScanner: Array(10).fill(0),
+                            passiveSonar: Array(10).fill(0)
+                        };
+                    }
                     ['sonarChecker', 'lineScanner', 'passiveSonar'].forEach(itemKey => {
                         for (let i = 0; i < 10; i += 1) {
-                            aggregate[roundNo][itemKey][i] += perRound[roundNo][itemKey][i];
+                            aggregateByEnemy[enemyKey][itemKey][i] += perEnemy[enemyKey][itemKey][i];
                         }
                     });
                 });
             });
 
-            const totalUses = [1, 2, 3].reduce((sum, roundNo) => {
+            const enemyKeys = Object.keys(aggregateByEnemy).map(Number).sort((a, b) => a - b);
+            const totalUses = enemyKeys.reduce((sum, enemy) => {
+                const key = String(enemy);
                 return sum
-                    + aggregate[roundNo].sonarChecker.reduce((a, b) => a + b, 0)
-                    + aggregate[roundNo].lineScanner.reduce((a, b) => a + b, 0)
-                    + aggregate[roundNo].passiveSonar.reduce((a, b) => a + b, 0);
+                    + aggregateByEnemy[key].sonarChecker.reduce((a, b) => a + b, 0)
+                    + aggregateByEnemy[key].lineScanner.reduce((a, b) => a + b, 0)
+                    + aggregateByEnemy[key].passiveSonar.reduce((a, b) => a + b, 0);
             }, 0);
 
             if (totalUses === 0) {
                 itemStatsEl.innerHTML = `
                     <div class="empty-state">
                         <h4>No item usage data</h4>
-                        <p>Need "Round", "Player turn", and "Query" logs to calculate usage by turn.</p>
+                        <p>Need Enemy, Player turn, and item logs (Query/Line scan/Passive sonar) to calculate usage by turn.</p>
                     </div>
                 `;
                 return;
             }
 
             const chartsHtml = [
-                renderItemLineChart('Sonar Checker Usage Count', 'sonarChecker', '#1f77b4', aggregate),
-                renderItemLineChart('Line Scanner Usage Count', 'lineScanner', '#d62728', aggregate),
-                renderItemLineChart('Passive Sonar Usage Count', 'passiveSonar', '#9467bd', aggregate)
+                renderItemLineChartByEnemy('Sonar Checker Usage Count', 'sonarChecker', aggregateByEnemy, enemyKeys),
+                renderItemLineChartByEnemy('Line Scanner Usage Count', 'lineScanner', aggregateByEnemy, enemyKeys),
+                renderItemLineChartByEnemy('Passive Sonar Usage Count', 'passiveSonar', aggregateByEnemy, enemyKeys)
             ].join('');
 
             itemStatsEl.innerHTML = `
-                <div class="stats-meta">Each chart shows total usage count by turn (T1~T10), with three lines: Round 1 (blue/purple/red base color), Round 2 (orange), Round 3 (green).</div>
+                <div class="stats-meta">Each chart shows total usage count by turn (T1~T10), grouped by Enemy, for selected run(s).</div>
                 <div class="item-charts">
                     ${chartsHtml}
                 </div>
             `;
         }
 
-        function parseDepthFromMessage(message) {
+        function parseEnemyFromMessage(message) {
             const msg = message || '';
-            const depthTag = msg.match(/Depth\s*[:=]\s*(\d+)/i);
-            if (depthTag) {
-                return Number.parseInt(depthTag[1], 10);
-            }
-
-            const playerTurnArrow = msg.match(/Player turn:\s*\d+\s*->\(\s*\d+\s*\)->\s*(\d+)/i);
-            if (playerTurnArrow) {
-                return Number.parseInt(playerTurnArrow[1], 10);
-            }
-
-            const playerTurnSimple = msg.match(/Player turn:\s*(\d+)\b/i);
-            if (playerTurnSimple) {
-                return Number.parseInt(playerTurnSimple[1], 10);
+            const enemyTag = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+            if (enemyTag) {
+                return Number.parseInt(enemyTag[1], 10);
             }
 
             return null;
@@ -2867,7 +3212,7 @@
                     runs.set(runNo, {
                         userId,
                         runNo,
-                        depth: null,
+                        enemy: null,
                         used: { sonarChecker: false, passiveSonar: false, lineScanner: false },
                         anyItem: false,
                         hasMemo: false,
@@ -2896,9 +3241,9 @@
                 }
                 const rec = ensureRun(currentRun);
 
-                const depth = parseDepthFromMessage(msg);
-                if (Number.isFinite(depth)) {
-                    rec.depth = depth;
+                const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy)) {
+                    rec.enemy = enemy;
                 }
 
                 const item = classifyQueryItem(msg);
@@ -2954,7 +3299,7 @@
 
             if (!cachedDepthWinRateData || cachedDepthWinRateData.runNumbers.length === 0) {
                 selectEl.innerHTML = '';
-                contentEl.innerHTML = '<div class="empty-state"><h4>No run data</h4><p>No run/depth information found in logs.</p></div>';
+                contentEl.innerHTML = '<div class="empty-state"><h4>No run data</h4><p>No run/enemy information found in logs.</p></div>';
                 return;
             }
 
@@ -2978,7 +3323,7 @@
             const contentEl = document.getElementById('depthWinRateContent');
             const selectEl = document.getElementById('depthRunSelect');
             if (!cachedDepthWinRateData) {
-                contentEl.innerHTML = '<div class="empty-state"><h4>No data</h4><p>Depth win rate data is unavailable.</p></div>';
+                contentEl.innerHTML = '<div class="empty-state"><h4>No data</h4><p>Enemy win rate data is unavailable.</p></div>';
                 return;
             }
 
@@ -3003,32 +3348,41 @@
                 return checkbox && checkbox.checked;
             });
 
-            if (selectedCategories.length === 0) {
-                contentEl.innerHTML = '<div class="empty-state"><h4>No category selected</h4><p>Enable at least one toggle.</p></div>';
+            const runSet = new Set(selectedRuns);
+            const baseRecords = cachedDepthWinRateData.records.filter(r => runSet.has(r.runNo) && Number.isFinite(r.enemy));
+            if (baseRecords.length === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No enemy records</h4><p>No matching run records with enemy information.</p></div>';
                 return;
             }
 
-            const runSet = new Set(selectedRuns);
-            const baseRecords = cachedDepthWinRateData.records.filter(r => runSet.has(r.runNo) && Number.isFinite(r.depth) && r.depth >= 1 && r.depth <= 20);
-            if (baseRecords.length === 0) {
-                contentEl.innerHTML = '<div class="empty-state"><h4>No depth records</h4><p>No matching run records with depth information.</p></div>';
-                return;
-            }
+            const enemyValues = Array.from(new Set(baseRecords.map(r => r.enemy))).sort((a, b) => a - b);
+            const enemyToIdx = new Map(enemyValues.map((e, idx) => [e, idx]));
+
+            const overallCounts = Array(enemyValues.length).fill(0);
+            const overallWins = Array(enemyValues.length).fill(0);
+            baseRecords.forEach(r => {
+                const idx = enemyToIdx.get(r.enemy);
+                if (typeof idx !== 'number') return;
+                overallCounts[idx] += 1;
+                if (r.won) overallWins[idx] += 1;
+            });
+            const overallRates = overallCounts.map((c, i) => c > 0 ? (overallWins[i] / c) * 100 : null);
 
             const series = selectedCategories.map(cat => {
-                const counts = Array(20).fill(0);
-                const wins = Array(20).fill(0);
+                const counts = Array(enemyValues.length).fill(0);
+                const wins = Array(enemyValues.length).fill(0);
                 baseRecords.forEach(r => {
                     if (!cat.pred(r)) return;
-                    const idx = r.depth - 1;
+                    const idx = enemyToIdx.get(r.enemy);
+                    if (typeof idx !== 'number') return;
                     counts[idx] += 1;
                     if (r.won) wins[idx] += 1;
                 });
                 const rates = counts.map((c, i) => c > 0 ? (wins[i] / c) * 100 : null);
-                return { ...cat, counts, wins, rates };
+                return { ...cat, counts, wins, rates, enemyValues };
             }).filter(s => s.counts.some(c => c > 0));
 
-            if (series.length === 0) {
+            if (selectedCategories.length > 0 && series.length === 0) {
                 contentEl.innerHTML = '<div class="empty-state"><h4>No matching records</h4><p>Selected toggles do not match any records in chosen run(s).</p></div>';
                 return;
             }
@@ -3040,28 +3394,37 @@
                 return `<span class="depth-legend-item"><span class="depth-legend-swatch" style="background:${s.color};"></span>${s.label} (${overall}% , n=${total})</span>`;
             }).join('');
 
-            const headerCols = series.map(s => `<th>${s.label}</th>`).join('');
-            const rowsHtml = Array.from({ length: 20 }, (_, i) => i + 1).map(depth => {
+            const headerCols = `<th>Overall (Player Win Rate)</th>${series.map(s => `<th>${s.label}</th>`).join('')}`;
+            const rowsHtml = enemyValues.map(enemyVal => {
+                const idx = enemyToIdx.get(enemyVal);
+                const overallCnt = overallCounts[idx];
+                const overallWin = overallWins[idx];
+                const overallCell = overallCnt > 0
+                    ? `${(overallRates[idx]).toFixed(1)}% (${overallWin}/${overallCnt})`
+                    : '-';
+
                 const cols = series.map(s => {
-                    const idx = depth - 1;
                     const cnt = s.counts[idx];
                     const win = s.wins[idx];
                     if (cnt === 0) {
                         return '<td>-</td>';
                     }
                     const pct = ((win / cnt) * 100).toFixed(1);
-                    return `<td>${pct}% (${win}/${cnt})</td>`;
+                    const base = overallRates[idx];
+                    const delta = Number.isFinite(base) ? ((Number.parseFloat(pct) - base).toFixed(1)) : null;
+                    const deltaText = (delta === null) ? '' : `, Δ${delta >= 0 ? '+' : ''}${delta}`;
+                    return `<td>${pct}% (${win}/${cnt}${deltaText})</td>`;
                 }).join('');
-                return `<tr><td>${depth}</td>${cols}</tr>`;
+                return `<tr><td>${enemyVal}</td><td>${overallCell}</td>${cols}</tr>`;
             }).join('');
 
             contentEl.innerHTML = `
-                <div class="stats-meta">Depth-wise win rate for selected run(s). Win condition: run has "Collect: Memo" and no "wrong submit".</div>
+                <div class="stats-meta">This is <b>player win rate against each Enemy</b> (not enemy win rate). Toggle columns show conditional player win rates and Δ vs overall for that Enemy.</div>
                 <div class="depth-table-wrap">
                     <table class="depth-table">
                         <thead>
                             <tr>
-                                <th>Depth</th>
+                                <th>Enemy</th>
                                 ${headerCols}
                             </tr>
                         </thead>
@@ -3094,8 +3457,8 @@
             }
         }
 
-        // Auto-refresh every 10 seconds (toggleable)
-        startAutoRefresh();
+        // Auto-refresh every 10 seconds (toggleable, default off)
+        stopAutoRefresh();
 
         // Initial load
         loadLogs();
