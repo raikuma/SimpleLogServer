@@ -2,12 +2,14 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3333;
 const HOST = '0.0.0.0';
 
 // Middleware to parse JSON requests
+app.use(cors());
 app.use(express.json());
 
 // Ensure user_logs directory exists
