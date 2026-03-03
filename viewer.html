@@ -3133,6 +3133,7 @@
                 let runNo = 0;
                 let floorNo = null;
                 let turnNo = 0;
+                let enemyNo = null;
 
                 entries.forEach(entry => {
                     const msg = entry.message || '';
@@ -3147,10 +3148,16 @@
                             runNo = 1;
                         }
                         turnNo = 0;
+                        enemyNo = null;
                     }
 
                     if (/Player turn:/i.test(msg)) {
                         turnNo += 1;
+                    }
+
+                    const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                    if (enemyMatch) {
+                        enemyNo = Number.parseInt(enemyMatch[1], 10);
                     }
 
                     const enemyBoardMatch = msg.match(/Enemy board:\s*([EBSXO@]{25})/i);
@@ -3162,6 +3169,7 @@
                         userId: player.userId,
                         runNo: runNo || 1,
                         floorNo: Number.isFinite(floorNo) ? floorNo : '?',
+                        enemyNo: Number.isFinite(enemyNo) ? enemyNo : '?',
                         turnNo,
                         board,
                         log: msg
@@ -3200,6 +3208,7 @@
                     <td>${escapeHtml(c.userId)}</td>
                     <td>${c.runNo}</td>
                     <td>${c.floorNo}</td>
+                    <td>${c.enemyNo}</td>
                     <td>${c.turnNo}</td>
                     <td><code>${c.board}</code></td>
                     <td style="text-align:left;">${escapeHtml(c.log)}</td>
@@ -3219,6 +3228,7 @@
                                 <th>Player</th>
                                 <th>Run</th>
                                 <th>Floor</th>
+                                <th>Enemy</th>
                                 <th>Turn</th>
                                 <th>Enemy Board</th>
                                 <th>Log</th>
