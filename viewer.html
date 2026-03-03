@@ -457,6 +457,46 @@
             border-radius: 2px;
         }
 
+        .death-pie-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .death-pie-card {
+            background: #fbfcff;
+            border: 1px solid #e5ebff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .death-pie-card h4 {
+            margin: 0 0 8px;
+            font-size: 0.95em;
+            color: #3f4c72;
+        }
+
+        .death-pie-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .death-pie-svg {
+            width: 92px;
+            height: 92px;
+            flex: 0 0 auto;
+        }
+
+        .death-pie-list {
+            font-size: 0.82em;
+            color: #3f4c72;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .lucky-section {
             margin-top: 20px;
             background: white;
@@ -546,6 +586,22 @@
         .board-query-table th {
             background: #f3f6ff;
             color: #3f4c72;
+        }
+
+        .turn-link {
+            border: none;
+            background: none;
+            color: #2e4db7;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            font: inherit;
+        }
+
+        .turn-link:disabled {
+            color: #7b85aa;
+            text-decoration: none;
+            cursor: default;
         }
 
         .board-grid {
@@ -922,6 +978,28 @@
             <div id="electricityChartContent" class="loading">Loading electricity trend chart...</div>
         </div>
 
+        <div class="oxygen-section" id="deathCauseSection">
+            <h3>Death Cause Frequency by Round</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="deathRunSelect">Select run(s):</label>
+                <select id="deathRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="deathEnemySelect">Select Enemy(s):</label>
+                <select id="deathEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="deathCauseContent" class="loading">Loading death cause stats...</div>
+        </div>
+
+        <div class="oxygen-section" id="winCauseSection">
+            <h3>Win Cause Frequency by Round</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="winRunSelect">Select run(s):</label>
+                <select id="winRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="winEnemySelect">Select Enemy(s):</label>
+                <select id="winEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="winCauseContent" class="loading">Loading win cause stats...</div>
+        </div>
+
         <div class="lucky-section" id="luckySection">
             <h3>Feeling Lucky Board Viewer</h3>
             <div class="lucky-controls">
@@ -929,6 +1007,7 @@
                 <button class="lucky-btn" id="luckyPrevBtn" onclick="showPrevBoardPair()">Previous</button>
                 <button class="lucky-btn" id="luckyNextBtn" onclick="showNextBoardPair()">Next</button>
                 <button class="lucky-btn" id="luckyJumpBtn" onclick="jumpToLuckyPlayerLog()">Jump To Player Log</button>
+                <button class="lucky-btn" onclick="showEnemyNoEAnomalies()">Find EnemyBoard No-E Cases</button>
             </div>
             <div id="luckyContent" class="loading">Loading board pairs...</div>
         </div>
@@ -972,6 +1051,7 @@
         let cachedElectricityRunStats = null;
         let cachedBoardPairs = [];
         let currentLuckyIndex = -1;
+        let cachedEnemyNoECases = [];
         let cachedDepthWinRateData = null;
         let selectedTurnHeatmapRuns = new Set();
         let selectedTransitionHeatmapRuns = new Set();
@@ -979,6 +1059,10 @@
         let selectedTransitionHeatmapEnemies = new Set();
         let selectedItemRuns = new Set(['all']);
         let selectedItemEnemies = new Set(['all']);
+        let selectedDeathRuns = new Set(['all']);
+        let selectedDeathEnemies = new Set(['all']);
+        let selectedWinRuns = new Set(['all']);
+        let selectedWinEnemies = new Set(['all']);
         let autoRefreshIntervalId = null;
 
         const DEFAULT_API_HOST = 'http://localhost:3333';
@@ -1332,6 +1416,8 @@
             renderQueryTransitionHeatmap(filteredPlayers);
             renderOxygenTrends(filteredPlayers);
             renderElectricityTrends(filteredPlayers);
+            renderDeathCauseStats(filteredPlayers);
+            renderWinCauseStats(filteredPlayers);
             prepareLuckyBoardPairs(filteredPlayers);
             renderItemUsageStats(filteredPlayers);
             renderDepthWinRateStats(filteredPlayers);
@@ -1542,6 +1628,8 @@
             const queryTransitionEl = document.getElementById('queryTransitionContent');
             const oxygenChartEl = document.getElementById('oxygenChartContent');
             const electricityChartEl = document.getElementById('electricityChartContent');
+            const deathCauseEl = document.getElementById('deathCauseContent');
+            const winCauseEl = document.getElementById('winCauseContent');
             const luckyEl = document.getElementById('luckyContent');
             const itemStatsEl = document.getElementById('itemStatsContent');
             const depthWinRateEl = document.getElementById('depthWinRateContent');
@@ -1554,6 +1642,8 @@
                 queryTransitionEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 oxygenChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 electricityChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                deathCauseEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                winCauseEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 luckyEl.innerHTML = '<div class="empty-state"><h4>No board data</h4><p>No log files found</p></div>';
                 itemStatsEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 depthWinRateEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
@@ -1570,6 +1660,8 @@
             queryTransitionEl.innerHTML = '<div class="loading">Calculating query transition heatmap...</div>';
             oxygenChartEl.innerHTML = '<div class="loading">Calculating oxygen trend stats...</div>';
             electricityChartEl.innerHTML = '<div class="loading">Calculating electricity trend stats...</div>';
+            deathCauseEl.innerHTML = '<div class="loading">Calculating death cause stats...</div>';
+            winCauseEl.innerHTML = '<div class="loading">Calculating win cause stats...</div>';
             luckyEl.innerHTML = '<div class="loading">Collecting enemy/guess board pairs...</div>';
             itemStatsEl.innerHTML = '<div class="loading">Calculating item usage stats...</div>';
             depthWinRateEl.innerHTML = '<div class="loading">Calculating enemy win rate stats...</div>';
@@ -1602,6 +1694,8 @@
                 renderTransitionHeatmapError(error.message);
                 renderOxygenError(error.message);
                 renderElectricityError(error.message);
+                renderDeathCauseError(error.message);
+                renderWinCauseError(error.message);
                 document.getElementById('luckyContent').innerHTML = `<div class="error">Error loading lucky board view: ${error.message}</div>`;
                 document.getElementById('itemStatsContent').innerHTML = `<div class="error">Error loading item usage stats: ${error.message}</div>`;
                 renderDepthWinRateError(error.message);
@@ -1636,6 +1730,16 @@
         function renderElectricityError(message) {
             const electricityChartEl = document.getElementById('electricityChartContent');
             electricityChartEl.innerHTML = `<div class="error">Error loading electricity trends: ${message}</div>`;
+        }
+
+        function renderDeathCauseError(message) {
+            const deathCauseEl = document.getElementById('deathCauseContent');
+            deathCauseEl.innerHTML = `<div class="error">Error loading death cause stats: ${message}</div>`;
+        }
+
+        function renderWinCauseError(message) {
+            const winCauseEl = document.getElementById('winCauseContent');
+            winCauseEl.innerHTML = `<div class="error">Error loading win cause stats: ${message}</div>`;
         }
 
         function renderDepthWinRateError(message) {
@@ -2737,6 +2841,31 @@
                 return m ? m[1].trim() : null;
             };
 
+            const parseGuessBoardByTurn = (msg, fallbackTurnNo) => {
+                if (!/Guess board by turn:/i.test(msg || '')) return null;
+                const rest = (msg || '').replace(/^.*?Guess board by turn:\s*/i, '');
+                const boardMatches = rest.match(/[EBSXO@]{25}/ig);
+                if (!boardMatches || boardMatches.length === 0) return null;
+
+                const explicitTurns = [];
+                const turnRegex = /(?:^|[\s,;|])(?:turn|t)\s*[:#]?\s*(\d+)\b/ig;
+                let tm;
+                while ((tm = turnRegex.exec(rest)) !== null) {
+                    explicitTurns.push(Number.parseInt(tm[1], 10));
+                }
+
+                const out = [];
+                boardMatches.forEach((board, idx) => {
+                    let turnNo = explicitTurns[idx];
+                    if (!Number.isFinite(turnNo) || turnNo <= 0) {
+                        turnNo = Number.isFinite(fallbackTurnNo) && fallbackTurnNo > 0 ? fallbackTurnNo + idx : (idx + 1);
+                    }
+                    const clickTurnNo = Math.max(1, turnNo - 1);
+                    out.push({ turnNo: clickTurnNo, board: board.toUpperCase() });
+                });
+                return out;
+            };
+
             playerSummaries.forEach(player => {
                 const entries = (player.content || [])
                     .map(extractTimestampMs)
@@ -2767,7 +2896,8 @@
                             enemy,
                             runNo: runNo || 1,
                             floorNo: floorNo || '?',
-                            queriesByTurn: []
+                            queriesByTurn: [],
+                            guessBoardsByTurn: {}
                         };
                         pendingTurnLabel = null;
                         pendingTurnNo = 0;
@@ -2775,6 +2905,15 @@
                     }
 
                     if (pendingEnemy) {
+                        const guessByTurn = parseGuessBoardByTurn(msg, pendingTurnNo);
+                        if (guessByTurn && guessByTurn.length > 0) {
+                            guessByTurn.forEach(rec => {
+                                if (Number.isFinite(rec.turnNo) && rec.turnNo > 0 && rec.board) {
+                                    pendingEnemy.guessBoardsByTurn[rec.turnNo] = rec.board;
+                                }
+                            });
+                        }
+
                         const turnLabel = parsePlayerTurnLabel(msg);
                         if (turnLabel) {
                             pendingTurnNo += 1;
@@ -2801,7 +2940,8 @@
                             floorNo: pendingEnemy.floorNo,
                             enemy: pendingEnemy.enemy,
                             guess,
-                            queriesByTurn: pendingEnemy.queriesByTurn
+                            queriesByTurn: pendingEnemy.queriesByTurn,
+                            guessBoardsByTurn: pendingEnemy.guessBoardsByTurn
                         });
                         pendingEnemy = null;
                         pendingTurnLabel = null;
@@ -2847,7 +2987,7 @@
             }).join('');
         }
 
-        function renderBoardQueryRows(queriesByTurn) {
+        function renderBoardQueryRows(queriesByTurn, guessBoardsByTurn, finalTurnNo) {
             const groups = queriesByTurn || [];
             if (groups.length === 0) {
                 return `<tr><td colspan="2">No query logs between enemy/guess board.</td></tr>`;
@@ -2855,9 +2995,12 @@
 
             return groups.map(group => {
                 const queryText = group.queries.length > 0 ? group.queries.join('<br>') : '-';
+                const hasBoard = (guessBoardsByTurn && Object.prototype.hasOwnProperty.call(guessBoardsByTurn, group.turnNo))
+                    || (Number.isFinite(finalTurnNo) && group.turnNo === finalTurnNo);
+                const turnCell = `<button class="turn-link" data-turn="${group.turnNo}" ${hasBoard ? '' : 'disabled'}>T${group.turnNo} (${group.turnLabel})</button>`;
                 return `
                     <tr>
-                        <td>T${group.turnNo} (${group.turnLabel})</td>
+                        <td>${turnCell}</td>
                         <td>${queryText}</td>
                     </tr>
                 `;
@@ -2895,6 +3038,7 @@
             const safeIndex = ((index % cachedBoardPairs.length) + cachedBoardPairs.length) % cachedBoardPairs.length;
             currentLuckyIndex = safeIndex;
             const pick = cachedBoardPairs[safeIndex];
+            const finalTurnNo = (pick.queriesByTurn || []).reduce((maxTurn, g) => Math.max(maxTurn, Number(g.turnNo) || 0), 0);
             luckyEl.innerHTML = `
                 <div class="board-meta">
                     Player: <b>${pick.userId}</b> |
@@ -2909,7 +3053,8 @@
                     </div>
                     <div class="board-panel">
                         <h4>Guess Board</h4>
-                        <div class="board-grid">${toBoardCells(pick.guess)}</div>
+                        <div id="luckyGuessBoardState" class="board-meta" style="margin-bottom:8px;">Showing: Final</div>
+                        <div id="luckyGuessBoardGrid" class="board-grid">${toBoardCells(pick.guess)}</div>
                     </div>
                     <div class="board-query-panel">
                         <h4>Query Log by Turn</h4>
@@ -2922,13 +3067,33 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${renderBoardQueryRows(pick.queriesByTurn)}
+                                    ${renderBoardQueryRows(pick.queriesByTurn, pick.guessBoardsByTurn, finalTurnNo)}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             `;
+
+            const guessGridEl = document.getElementById('luckyGuessBoardGrid');
+            const guessStateEl = document.getElementById('luckyGuessBoardState');
+            luckyEl.querySelectorAll('.turn-link[data-turn]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!guessGridEl || !guessStateEl) return;
+                    const turnNo = Number.parseInt(btn.dataset.turn || '', 10);
+                    if (!Number.isFinite(turnNo)) return;
+                    const boardByTurn = pick.guessBoardsByTurn ? pick.guessBoardsByTurn[turnNo] : null;
+                    if (boardByTurn) {
+                        guessGridEl.innerHTML = toBoardCells(boardByTurn);
+                        guessStateEl.textContent = `Showing: Turn ${turnNo}`;
+                        return;
+                    }
+                    if (turnNo === finalTurnNo && pick.guess) {
+                        guessGridEl.innerHTML = toBoardCells(pick.guess);
+                        guessStateEl.textContent = 'Showing: Final';
+                    }
+                });
+            });
             updateLuckyButtons();
         }
 
@@ -2954,6 +3119,125 @@
             if (!cachedBoardPairs || cachedBoardPairs.length === 0 || currentLuckyIndex < 0) return;
             const pick = cachedBoardPairs[currentLuckyIndex];
             await selectLog(pick.userId);
+        }
+
+        function collectEnemyNoEAnomalies(playerSummaries) {
+            const out = [];
+
+            (playerSummaries || []).forEach(player => {
+                const entries = (player.content || [])
+                    .map(extractTimestampMs)
+                    .filter(Boolean)
+                    .sort((a, b) => a.ts - b.ts);
+
+                let runNo = 0;
+                let floorNo = null;
+                let turnNo = 0;
+
+                entries.forEach(entry => {
+                    const msg = entry.message || '';
+
+                    const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                    if (roundMatch) {
+                        const round = Number.parseInt(roundMatch[1], 10);
+                        floorNo = round;
+                        if (round === 1) {
+                            runNo += 1;
+                        } else if (runNo === 0) {
+                            runNo = 1;
+                        }
+                        turnNo = 0;
+                    }
+
+                    if (/Player turn:/i.test(msg)) {
+                        turnNo += 1;
+                    }
+
+                    const enemyBoardMatch = msg.match(/Enemy board:\s*([EBSXO@]{25})/i);
+                    if (!enemyBoardMatch) return;
+                    const board = enemyBoardMatch[1].toUpperCase();
+                    if (board.includes('E')) return;
+
+                    out.push({
+                        userId: player.userId,
+                        runNo: runNo || 1,
+                        floorNo: Number.isFinite(floorNo) ? floorNo : '?',
+                        turnNo,
+                        board,
+                        log: msg
+                    });
+                });
+            });
+
+            return out;
+        }
+
+        function showEnemyNoEAnomalies() {
+            const luckyEl = document.getElementById('luckyContent');
+            const escapeHtml = (s) => String(s || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const players = getFilteredPlayerDataByVersion();
+            cachedEnemyNoECases = collectEnemyNoEAnomalies(players);
+
+            if (!cachedEnemyNoECases || cachedEnemyNoECases.length === 0) {
+                luckyEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No Enemy board anomalies found</h4>
+                        <p>No "Enemy board:" logs with zero 'E' were found in current filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const rowsHtml = cachedEnemyNoECases.map((c, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(c.userId)}</td>
+                    <td>${c.runNo}</td>
+                    <td>${c.floorNo}</td>
+                    <td>${c.turnNo}</td>
+                    <td><code>${c.board}</code></td>
+                    <td style="text-align:left;">${escapeHtml(c.log)}</td>
+                    <td><button class="lucky-btn" style="padding:6px 10px; font-size:12px;" onclick="jumpToEnemyNoECase(${idx})">Jump</button></td>
+                </tr>
+            `).join('');
+
+            luckyEl.innerHTML = `
+                <div class="board-meta">
+                    Enemy board anomalies (no 'E'): <b>${cachedEnemyNoECases.length}</b>
+                </div>
+                <div class="depth-table-wrap">
+                    <table class="depth-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Player</th>
+                                <th>Run</th>
+                                <th>Floor</th>
+                                <th>Turn</th>
+                                <th>Enemy Board</th>
+                                <th>Log</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function jumpToEnemyNoECase(index) {
+            if (!Array.isArray(cachedEnemyNoECases)) return;
+            const rec = cachedEnemyNoECases[index];
+            if (!rec || !rec.userId) return;
+            await selectLog(rec.userId);
         }
 
         function updateLuckyButtons() {
@@ -2986,6 +3270,550 @@
             }
 
             return null;
+        }
+
+        function classifyDeathCause(message) {
+            const msg = (message || '').toLowerCase();
+            if (!msg) return null;
+
+            if (msg.includes('wrong submit') || msg.includes('game end: incorrect submit')) {
+                return 'wrongSubmit';
+            }
+            if (msg.includes('game end: enemy torpedo hit')) {
+                return 'enemyHit';
+            }
+            if (msg.includes('game end: oxygen depletion') || msg.includes('game end: oxygen suffocation')) {
+                return 'suffocation';
+            }
+            if (msg.includes('game end: electric discharge')) {
+                return 'discharge';
+            }
+            return null;
+        }
+
+        function collectRunDeathRecords(content) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const runs = new Map();
+            let currentRun = 0;
+            let currentRound = null;
+
+            const ensureRun = (runNo) => {
+                if (!runs.has(runNo)) {
+                    runs.set(runNo, {
+                        runNo,
+                        enemy: null,
+                        round: null,
+                        cause: null
+                    });
+                }
+                return runs.get(runNo);
+            };
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const roundNo = Number.parseInt(roundMatch[1], 10);
+                    if (roundNo === 1) {
+                        currentRun += 1;
+                    } else if (currentRun === 0) {
+                        currentRun = 1;
+                    }
+                    currentRound = roundNo;
+                    ensureRun(currentRun);
+                }
+
+                const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy) && currentRun > 0) {
+                    const rec = ensureRun(currentRun);
+                    rec.enemy = enemy;
+                }
+
+                const cause = classifyDeathCause(msg);
+                if (!cause) return;
+
+                if (currentRun === 0) {
+                    currentRun = 1;
+                }
+                const rec = ensureRun(currentRun);
+                if (rec.cause !== null) return;
+                rec.cause = cause;
+                if (Number.isFinite(currentRound)) {
+                    rec.round = currentRound;
+                }
+            });
+
+            return Array.from(runs.values()).filter(r => r.cause !== null && Number.isFinite(r.round));
+        }
+
+        function renderDeathCauseSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('deathRunSelect');
+            const enemySelectEl = document.getElementById('deathEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedDeathRuns = normalizeSelectedRuns(selectedDeathRuns, availableRuns);
+            selectedDeathEnemies = normalizeSelectedEnemies(selectedDeathEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedDeathRuns, () => {
+                selectedDeathRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedDeathRuns.size === 0) selectedDeathRuns = new Set(['all']);
+                if (selectedDeathRuns.has('all') && selectedDeathRuns.size > 1) selectedDeathRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedDeathRuns.has(opt.value); });
+                renderDeathCauseStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedDeathEnemies, () => {
+                selectedDeathEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedDeathEnemies.size === 0) selectedDeathEnemies = new Set(['all']);
+                if (selectedDeathEnemies.has('all') && selectedDeathEnemies.size > 1) selectedDeathEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedDeathEnemies.has(opt.value); });
+                renderDeathCauseStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function renderDeathCauseStats(playerSummaries) {
+            const contentEl = document.getElementById('deathCauseContent');
+            const { availableRuns, availableEnemies } = renderDeathCauseSelectors(playerSummaries);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedDeathRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedDeathEnemies, availableEnemies);
+
+            const categories = [
+                { key: 'wrongSubmit', label: 'Wrong Submit', color: '#d62728' },
+                { key: 'enemyHit', label: 'Enemy Hit', color: '#ff7f0e' },
+                { key: 'suffocation', label: 'Suffocation', color: '#1f77b4' },
+                { key: 'discharge', label: 'Discharge', color: '#2ca02c' }
+            ];
+
+            const rounds = [1, 2, 3];
+            const counts = {};
+            categories.forEach(cat => {
+                counts[cat.key] = [0, 0, 0];
+            });
+
+            let totalDeaths = 0;
+            playerSummaries.forEach(player => {
+                const records = collectRunDeathRecords(player.content);
+                records.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    const roundIdx = rounds.indexOf(rec.round);
+                    if (roundIdx < 0) return;
+                    if (!counts[rec.cause]) return;
+                    counts[rec.cause][roundIdx] += 1;
+                    totalDeaths += 1;
+                });
+            });
+
+            if (totalDeaths === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No death records</h4>
+                        <p>No matching death logs for selected run/enemy filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const yMax = Math.max(1, ...categories.flatMap(cat => counts[cat.key]));
+            const yTop = Math.max(1, Math.ceil((yMax + 1) / 2) * 2);
+            const svgWidth = 760;
+            const svgHeight = 280;
+            const leftPad = 44;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+
+            const xForRound = (round) => leftPad + ((round - 1) * (plotW / 2));
+            const yForCount = (count) => topPad + (plotH * (1 - (count / yTop)));
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(yTop * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForCount(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+
+            const xLabelHtml = rounds.map(round => {
+                const x = xForRound(round);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">Round ${round}</text>`;
+            }).join('');
+
+            const lineHtml = categories.map(cat => {
+                const values = counts[cat.key];
+                const points = rounds.map((round, idx) => ({
+                    x: xForRound(round),
+                    y: yForCount(values[idx])
+                }));
+                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${cat.color}" stroke-width="2.2"></polyline>`;
+                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${cat.color}" stroke="#fff" stroke-width="1.1"></circle>`).join('');
+                return `${poly}${dots}`;
+            }).join('');
+
+            const legendHtml = categories.map(cat => {
+                const n = counts[cat.key].reduce((a, b) => a + b, 0);
+                return `<span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${cat.color};"></span>${cat.label} (n=${n})</span>`;
+            }).join('');
+
+            const pieCardsHtml = rounds.map((round, roundIdx) => {
+                const values = categories.map(cat => counts[cat.key][roundIdx]);
+                const roundTotal = values.reduce((a, b) => a + b, 0);
+                if (roundTotal <= 0) {
+                    return `
+                        <div class="death-pie-card">
+                            <h4>Round ${round}</h4>
+                            <div class="death-pie-list">No deaths</div>
+                        </div>
+                    `;
+                }
+
+                const cx = 60;
+                const cy = 60;
+                const r = 44;
+                let angle = -Math.PI / 2;
+                const arcPath = (start, end) => {
+                    const x1 = cx + (r * Math.cos(start));
+                    const y1 = cy + (r * Math.sin(start));
+                    const x2 = cx + (r * Math.cos(end));
+                    const y2 = cy + (r * Math.sin(end));
+                    const largeArc = (end - start) > Math.PI ? 1 : 0;
+                    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                };
+
+                const slicesHtml = categories.map((cat, idx) => {
+                    const count = values[idx];
+                    if (count <= 0) return '';
+                    const frac = count / roundTotal;
+                    const start = angle;
+                    const end = angle + (frac * Math.PI * 2);
+                    angle = end;
+                    if (frac >= 0.9999) {
+                        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${cat.color}"></circle>`;
+                    }
+                    return `<path d="${arcPath(start, end)}" fill="${cat.color}"></path>`;
+                }).join('');
+
+                const listHtml = categories.map((cat, idx) => {
+                    const count = values[idx];
+                    const pct = roundTotal > 0 ? ((count / roundTotal) * 100) : 0;
+                    return `<span><span class="oxygen-legend-swatch" style="background:${cat.color};"></span> ${cat.label}: ${pct.toFixed(1)}% (${count}/${roundTotal})</span>`;
+                }).join('');
+
+                return `
+                    <div class="death-pie-card">
+                        <h4>Round ${round}</h4>
+                        <div class="death-pie-wrap">
+                            <svg class="death-pie-svg" viewBox="0 0 120 120" aria-label="Round ${round} death cause ratio">
+                                ${slicesHtml}
+                                <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-width="1.2"></circle>
+                            </svg>
+                            <div class="death-pie-list">${listHtml}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Counts are aggregated by round (x-axis), grouped by unified death cause labels, for selected run/enemy filters.</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${lineHtml}
+                            ${xLabelHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="oxygen-legend">${legendHtml}</div>
+                <div class="death-pie-grid">${pieCardsHtml}</div>
+            `;
+        }
+
+        function collectRunWinCauseRecords(content) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const outcomes = new Map();
+            let currentRun = 0;
+            let currentRound = null;
+            let currentEnemy = null;
+            let submittedInRound = false;
+            let waitingMemoAfterSubmit = false;
+
+            const keyOf = (runNo, roundNo) => `${runNo}-${roundNo}`;
+            const ensureRec = (runNo, roundNo) => {
+                const key = keyOf(runNo, roundNo);
+                if (!outcomes.has(key)) {
+                    outcomes.set(key, {
+                        runNo,
+                        round: roundNo,
+                        enemy: null,
+                        cause: null
+                    });
+                }
+                return outcomes.get(key);
+            };
+
+            const setCause = (cause, force = false) => {
+                if (currentRun <= 0 || !Number.isFinite(currentRound)) return;
+                const rec = ensureRec(currentRun, currentRound);
+                if (Number.isFinite(currentEnemy)) {
+                    rec.enemy = currentEnemy;
+                }
+                if (rec.cause === null || force) {
+                    rec.cause = cause;
+                }
+            };
+
+            const markEnemyMissByRoundTransition = (nextRound) => {
+                if (currentRun <= 0 || !Number.isFinite(currentRound)) return;
+                if (!Number.isFinite(nextRound) || nextRound <= currentRound) return;
+                if (!submittedInRound) {
+                    setCause('enemyMiss', false);
+                }
+            };
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const lowerMsg = msg.toLowerCase();
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const roundNo = Number.parseInt(roundMatch[1], 10);
+                    if (roundNo === 1) {
+                        currentRun += 1;
+                    } else {
+                        if (currentRun === 0) currentRun = 1;
+                        markEnemyMissByRoundTransition(roundNo);
+                    }
+                    currentRound = roundNo;
+                    submittedInRound = false;
+                    waitingMemoAfterSubmit = false;
+                    ensureRec(currentRun, currentRound);
+                }
+
+                const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy)) {
+                    currentEnemy = enemy;
+                    if (currentRun > 0 && Number.isFinite(currentRound)) {
+                        const rec = ensureRec(currentRun, currentRound);
+                        rec.enemy = enemy;
+                    }
+                }
+
+                if (/^Submit:/i.test(msg)) {
+                    submittedInRound = true;
+                    waitingMemoAfterSubmit = true;
+                }
+
+                if (/Collect\s*:\s*Memo/i.test(msg) && waitingMemoAfterSubmit) {
+                    if (!/\(Photo\)/i.test(msg)) {
+                        setCause('submitWin', false);
+                    }
+                    waitingMemoAfterSubmit = false;
+                }
+
+                if (lowerMsg.includes('game win: submit')) {
+                    setCause('submitWin', true);
+                }
+
+                if (lowerMsg.includes('game win: enemy torpedo miss')) {
+                    setCause('enemyMiss', true);
+                }
+            });
+
+            return Array.from(outcomes.values()).filter(r => r.cause !== null && Number.isFinite(r.round) && Number.isFinite(r.enemy));
+        }
+
+        function renderWinCauseSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('winRunSelect');
+            const enemySelectEl = document.getElementById('winEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedWinRuns = normalizeSelectedRuns(selectedWinRuns, availableRuns);
+            selectedWinEnemies = normalizeSelectedEnemies(selectedWinEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedWinRuns, () => {
+                selectedWinRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedWinRuns.size === 0) selectedWinRuns = new Set(['all']);
+                if (selectedWinRuns.has('all') && selectedWinRuns.size > 1) selectedWinRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedWinRuns.has(opt.value); });
+                renderWinCauseStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedWinEnemies, () => {
+                selectedWinEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedWinEnemies.size === 0) selectedWinEnemies = new Set(['all']);
+                if (selectedWinEnemies.has('all') && selectedWinEnemies.size > 1) selectedWinEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedWinEnemies.has(opt.value); });
+                renderWinCauseStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function renderWinCauseStats(playerSummaries) {
+            const contentEl = document.getElementById('winCauseContent');
+            const { availableRuns, availableEnemies } = renderWinCauseSelectors(playerSummaries);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedWinRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedWinEnemies, availableEnemies);
+
+            const categories = [
+                { key: 'submitWin', label: 'Submit Win', color: '#2ca02c' },
+                { key: 'enemyMiss', label: 'Enemy Miss Win', color: '#1f77b4' }
+            ];
+            const rounds = [1, 2, 3];
+            const counts = {};
+            categories.forEach(cat => { counts[cat.key] = [0, 0, 0]; });
+
+            let totalWins = 0;
+            playerSummaries.forEach(player => {
+                const records = collectRunWinCauseRecords(player.content);
+                records.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    const roundIdx = rounds.indexOf(rec.round);
+                    if (roundIdx < 0) return;
+                    if (!counts[rec.cause]) return;
+                    counts[rec.cause][roundIdx] += 1;
+                    totalWins += 1;
+                });
+            });
+
+            if (totalWins === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No win records</h4>
+                        <p>No matching win logs for selected run/enemy filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const yMax = Math.max(1, ...categories.flatMap(cat => counts[cat.key]));
+            const yTop = Math.max(1, Math.ceil((yMax + 1) / 2) * 2);
+            const svgWidth = 760;
+            const svgHeight = 280;
+            const leftPad = 44;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+
+            const xForRound = (round) => leftPad + ((round - 1) * (plotW / 2));
+            const yForCount = (count) => topPad + (plotH * (1 - (count / yTop)));
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(yTop * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForCount(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+
+            const xLabelHtml = rounds.map(round => {
+                const x = xForRound(round);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">Round ${round}</text>`;
+            }).join('');
+
+            const lineHtml = categories.map(cat => {
+                const values = counts[cat.key];
+                const points = rounds.map((round, idx) => ({
+                    x: xForRound(round),
+                    y: yForCount(values[idx])
+                }));
+                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${cat.color}" stroke-width="2.2"></polyline>`;
+                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${cat.color}" stroke="#fff" stroke-width="1.1"></circle>`).join('');
+                return `${poly}${dots}`;
+            }).join('');
+
+            const legendHtml = categories.map(cat => {
+                const n = counts[cat.key].reduce((a, b) => a + b, 0);
+                return `<span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${cat.color};"></span>${cat.label} (n=${n})</span>`;
+            }).join('');
+
+            const pieCardsHtml = rounds.map((round, roundIdx) => {
+                const values = categories.map(cat => counts[cat.key][roundIdx]);
+                const roundTotal = values.reduce((a, b) => a + b, 0);
+                if (roundTotal <= 0) {
+                    return `
+                        <div class="death-pie-card">
+                            <h4>Round ${round}</h4>
+                            <div class="death-pie-list">No wins</div>
+                        </div>
+                    `;
+                }
+
+                const cx = 60;
+                const cy = 60;
+                const r = 44;
+                let angle = -Math.PI / 2;
+                const arcPath = (start, end) => {
+                    const x1 = cx + (r * Math.cos(start));
+                    const y1 = cy + (r * Math.sin(start));
+                    const x2 = cx + (r * Math.cos(end));
+                    const y2 = cy + (r * Math.sin(end));
+                    const largeArc = (end - start) > Math.PI ? 1 : 0;
+                    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                };
+
+                const slicesHtml = categories.map((cat, idx) => {
+                    const count = values[idx];
+                    if (count <= 0) return '';
+                    const frac = count / roundTotal;
+                    const start = angle;
+                    const end = angle + (frac * Math.PI * 2);
+                    angle = end;
+                    if (frac >= 0.9999) {
+                        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${cat.color}"></circle>`;
+                    }
+                    return `<path d="${arcPath(start, end)}" fill="${cat.color}"></path>`;
+                }).join('');
+
+                const listHtml = categories.map((cat, idx) => {
+                    const count = values[idx];
+                    const pct = roundTotal > 0 ? ((count / roundTotal) * 100) : 0;
+                    return `<span><span class="oxygen-legend-swatch" style="background:${cat.color};"></span> ${cat.label}: ${pct.toFixed(1)}% (${count}/${roundTotal})</span>`;
+                }).join('');
+
+                return `
+                    <div class="death-pie-card">
+                        <h4>Round ${round}</h4>
+                        <div class="death-pie-wrap">
+                            <svg class="death-pie-svg" viewBox="0 0 120 120" aria-label="Round ${round} win cause ratio">
+                                ${slicesHtml}
+                                <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-width="1.2"></circle>
+                            </svg>
+                            <div class="death-pie-list">${listHtml}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Win causes by round for selected run/enemy filters. Submit Win: submit-based victory. Enemy Miss Win: round advanced without submit, or explicit "Game win: Enemy torpedo miss".</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${lineHtml}
+                            ${xLabelHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="oxygen-legend">${legendHtml}</div>
+                <div class="death-pie-grid">${pieCardsHtml}</div>
+            `;
         }
 
         function renderItemRunSelector(playerSummaries) {
