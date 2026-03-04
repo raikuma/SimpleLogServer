@@ -4000,6 +4000,9 @@
                     const roundNo = Number.parseInt(roundMatch[1], 10);
                     if (roundNo === 1) {
                         currentRun += 1;
+                        // New run starts here; clear stale enemy carried from previous run tail.
+                        currentEnemy = null;
+                        currentEnemyMsg = null;
                     } else {
                         if (currentRun === 0) currentRun = 1;
                         markEnemyMissByRoundTransition(roundNo);
@@ -4008,8 +4011,8 @@
                     submittedInRound = false;
                     waitingMemoAfterSubmit = false;
                     const rec = ensureRec(currentRun, currentRound);
-                    // Enemy can appear before Round in some logs; bind it immediately on round entry.
-                    if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                    // Enemy can appear before Round for round 2/3 in some logs; bind immediately.
+                    if (roundNo > 1 && !Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
                         rec.enemy = currentEnemy;
                         rec.enemyFrom = '(bound from latest Enemy before Round)';
                     }
