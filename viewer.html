@@ -1042,8 +1042,10 @@
                 <select id="winRunSelect" class="oxygen-run-select" multiple size="6"></select>
                 <label for="winEnemySelect">Select Enemy(s):</label>
                 <select id="winEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+                <button class="lucky-btn" style="padding:8px 12px; font-size:12px;" onclick="showWinCauseDebugRows()">Debug Win Records</button>
             </div>
             <div id="winCauseContent" class="loading">Loading win cause stats...</div>
+            <div id="winCauseDebugContent"></div>
         </div>
 
         <div class="lucky-section" id="luckySection">
@@ -1112,6 +1114,7 @@
         let selectedDeathEnemies = new Set(['all']);
         let selectedWinRuns = new Set(['all']);
         let selectedWinEnemies = new Set(['all']);
+        let cachedWinCauseDebugRows = [];
         let autoRefreshIntervalId = null;
 
         const DEFAULT_API_HOST = 'http://localhost:3333';
@@ -3689,6 +3692,7 @@
             const runs = new Map();
             let currentRun = 0;
             let currentRound = null;
+            let currentEnemy = null;
 
             const ensureRun = (runNo) => {
                 if (!runs.has(runNo)) {
@@ -3718,9 +3722,15 @@
                 }
 
                 const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy)) {
+                    currentEnemy = enemy;
+                }
                 if (Number.isFinite(enemy) && currentRun > 0) {
                     const rec = ensureRun(currentRun);
-                    rec.enemy = enemy;
+                    // Enemy can change while run is in progress, but once cause is fixed, keep it.
+                    if (rec.cause === null) {
+                        rec.enemy = enemy;
+                    }
                 }
 
                 const cause = classifyDeathCause(msg);
@@ -3731,6 +3741,9 @@
                 }
                 const rec = ensureRun(currentRun);
                 if (rec.cause !== null) return;
+                if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                    rec.enemy = currentEnemy;
+                }
                 rec.cause = cause;
                 if (Number.isFinite(currentRound)) {
                     rec.round = currentRound;
@@ -3936,6 +3949,7 @@
             let currentRun = 0;
             let currentRound = null;
             let currentEnemy = null;
+            let currentEnemyMsg = null;
             let submittedInRound = false;
             let waitingMemoAfterSubmit = false;
 
@@ -3947,20 +3961,25 @@
                         runNo,
                         round: roundNo,
                         enemy: null,
-                        cause: null
+                        cause: null,
+                        enemyFrom: null,
+                        causeFrom: null
                     });
                 }
                 return outcomes.get(key);
             };
 
-            const setCause = (cause, force = false) => {
+            const setCause = (cause, triggerMsg, force = false) => {
                 if (currentRun <= 0 || !Number.isFinite(currentRound)) return;
                 const rec = ensureRec(currentRun, currentRound);
-                if (Number.isFinite(currentEnemy)) {
+                // Preserve the first resolved enemy for a round; do not overwrite later.
+                if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
                     rec.enemy = currentEnemy;
+                    rec.enemyFrom = currentEnemyMsg;
                 }
                 if (rec.cause === null || force) {
                     rec.cause = cause;
+                    rec.causeFrom = triggerMsg || null;
                 }
             };
 
@@ -3968,7 +3987,7 @@
                 if (currentRun <= 0 || !Number.isFinite(currentRound)) return;
                 if (!Number.isFinite(nextRound) || nextRound <= currentRound) return;
                 if (!submittedInRound) {
-                    setCause('enemyMiss', false);
+                    setCause('enemyMiss', `Round transition ${currentRound} -> ${nextRound} without Submit`, false);
                 }
             };
 
@@ -3988,15 +4007,25 @@
                     currentRound = roundNo;
                     submittedInRound = false;
                     waitingMemoAfterSubmit = false;
-                    ensureRec(currentRun, currentRound);
+                    const rec = ensureRec(currentRun, currentRound);
+                    // Enemy can appear before Round in some logs; bind it immediately on round entry.
+                    if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                        rec.enemy = currentEnemy;
+                        rec.enemyFrom = '(bound from latest Enemy before Round)';
+                    }
                 }
 
                 const enemy = parseEnemyFromMessage(msg);
                 if (Number.isFinite(enemy)) {
                     currentEnemy = enemy;
+                    currentEnemyMsg = msg;
                     if (currentRun > 0 && Number.isFinite(currentRound)) {
                         const rec = ensureRec(currentRun, currentRound);
-                        rec.enemy = enemy;
+                        // Keep first enemy assignment for this round to prevent cross-round contamination.
+                        if (rec.cause === null && !Number.isFinite(rec.enemy)) {
+                            rec.enemy = enemy;
+                            rec.enemyFrom = msg;
+                        }
                     }
                 }
 
@@ -4007,21 +4036,105 @@
 
                 if (/Collect\s*:\s*Memo/i.test(msg) && waitingMemoAfterSubmit) {
                     if (!/\(Photo\)/i.test(msg)) {
-                        setCause('submitWin', false);
+                        setCause('submitWin', msg, false);
                     }
                     waitingMemoAfterSubmit = false;
                 }
 
                 if (lowerMsg.includes('game win: submit')) {
-                    setCause('submitWin', true);
+                    setCause('submitWin', msg, true);
                 }
 
                 if (lowerMsg.includes('game win: enemy torpedo miss')) {
-                    setCause('enemyMiss', true);
+                    setCause('enemyMiss', msg, true);
                 }
             });
 
             return Array.from(outcomes.values()).filter(r => r.cause !== null && Number.isFinite(r.round) && Number.isFinite(r.enemy));
+        }
+
+        function showWinCauseDebugRows() {
+            const debugEl = document.getElementById('winCauseDebugContent');
+            if (!debugEl) return;
+
+            const players = getFilteredPlayerDataByVersion();
+            const availableRuns = collectAvailableRunNumbers(players);
+            const availableEnemies = collectAvailableEnemyNumbers(players);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedWinRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedWinEnemies, availableEnemies);
+
+            const rows = [];
+            players.forEach(player => {
+                const records = collectRunWinCauseRecords(player.content);
+                records.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    rows.push({
+                        userId: player.userId,
+                        runNo: rec.runNo,
+                        round: rec.round,
+                        enemy: rec.enemy,
+                        cause: rec.cause,
+                        enemyFrom: rec.enemyFrom || '-',
+                        causeFrom: rec.causeFrom || '-'
+                    });
+                });
+            });
+
+            if (rows.length === 0) {
+                debugEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No debug rows</h4>
+                        <p>No win records match current run/enemy filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sorted = [...rows].sort((a, b) => (a.round - b.round) || (a.enemy - b.enemy) || (a.runNo - b.runNo) || a.userId.localeCompare(b.userId));
+            cachedWinCauseDebugRows = sorted;
+            const rowsHtml = sorted.map((r, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(r.userId)}</td>
+                    <td>${r.runNo}</td>
+                    <td>${r.round}</td>
+                    <td>${r.enemy}</td>
+                    <td>${r.cause === 'submitWin' ? 'Submit Win' : 'Enemy Miss Win'}</td>
+                    <td style="text-align:left;">${escapeHtml(r.enemyFrom)}</td>
+                    <td style="text-align:left;">${escapeHtml(r.causeFrom)}</td>
+                    <td><button class="lucky-btn" style="padding:6px 10px; font-size:12px;" onclick="jumpToWinCauseDebugRow(${idx})">Open Log</button></td>
+                </tr>
+            `).join('');
+
+            debugEl.innerHTML = `
+                <div class="stats-meta">Debug rows for current filters. Check "Enemy Source Log" and "Cause Source Log" to trace wrong attributions.</div>
+                <div class="depth-table-wrap">
+                    <table class="depth-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Player</th>
+                                <th>Run</th>
+                                <th>Round</th>
+                                <th>Enemy</th>
+                                <th>Cause</th>
+                                <th>Enemy Source Log</th>
+                                <th>Cause Source Log</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function jumpToWinCauseDebugRow(index) {
+            if (!Array.isArray(cachedWinCauseDebugRows)) return;
+            const rec = cachedWinCauseDebugRows[index];
+            if (!rec || !rec.userId) return;
+            await selectLog(rec.userId);
         }
 
         function renderWinCauseSelectors(playerSummaries) {
@@ -4053,9 +4166,14 @@
 
         function renderWinCauseStats(playerSummaries) {
             const contentEl = document.getElementById('winCauseContent');
+            const debugEl = document.getElementById('winCauseDebugContent');
             const { availableRuns, availableEnemies } = renderWinCauseSelectors(playerSummaries);
             const selectedRunSet = resolveSelectedRunsForHeatmap(selectedWinRuns, availableRuns);
             const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedWinEnemies, availableEnemies);
+            if (debugEl) {
+                debugEl.innerHTML = '';
+                cachedWinCauseDebugRows = [];
+            }
 
             const categories = [
                 { key: 'submitWin', label: 'Submit Win', color: '#2ca02c' },
@@ -4446,6 +4564,7 @@
 
             const runs = new Map();
             let currentRun = 0;
+            let currentEnemy = null;
 
             const ensureRun = (runNo) => {
                 if (!runs.has(runNo)) {
@@ -4457,7 +4576,8 @@
                         anyItem: false,
                         hasMemo: false,
                         hasWrongSubmit: false,
-                        hasGameEnd: false
+                        hasGameEnd: false,
+                        outcomeLocked: false
                     });
                 }
                 return runs.get(runNo);
@@ -4483,7 +4603,10 @@
 
                 const enemy = parseEnemyFromMessage(msg);
                 if (Number.isFinite(enemy)) {
-                    rec.enemy = enemy;
+                    currentEnemy = enemy;
+                    if (!rec.outcomeLocked) {
+                        rec.enemy = enemy;
+                    }
                 }
 
                 const item = classifyQueryItem(msg);
@@ -4494,12 +4617,24 @@
 
                 if (msg.includes('Collect: Memo')) {
                     rec.hasMemo = true;
+                    if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                        rec.enemy = currentEnemy;
+                    }
+                    rec.outcomeLocked = true;
                 }
                 if (lowerMsg.includes('wrong submit')) {
                     rec.hasWrongSubmit = true;
+                    if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                        rec.enemy = currentEnemy;
+                    }
+                    rec.outcomeLocked = true;
                 }
                 if (msg.includes('Game end: Go to title')) {
                     rec.hasGameEnd = true;
+                    if (!Number.isFinite(rec.enemy) && Number.isFinite(currentEnemy)) {
+                        rec.enemy = currentEnemy;
+                    }
+                    rec.outcomeLocked = true;
                 }
             }
 
