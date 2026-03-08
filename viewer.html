@@ -1038,6 +1038,17 @@
             <div id="queryTransitionContent" class="loading">Loading query transition heatmap...</div>
         </div>
 
+        <div class="oxygen-section" id="submitTurnSection">
+            <h3>Submit Turn Averages by Round</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="submitTurnRunSelect">Select run(s):</label>
+                <select id="submitTurnRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="submitTurnEnemySelect">Select Enemy(s):</label>
+                <select id="submitTurnEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="submitTurnContent" class="loading">Loading submit turn stats...</div>
+        </div>
+
         <div class="oxygen-section" id="oxygenSection">
             <h3>Round Entry Oxygen Trends</h3>
             <div class="oxygen-controls">
@@ -1159,6 +1170,8 @@
         let selectedTransitionHeatmapRuns = new Set();
         let selectedTurnHeatmapEnemies = new Set();
         let selectedTransitionHeatmapEnemies = new Set();
+        let selectedSubmitTurnRuns = new Set(['all']);
+        let selectedSubmitTurnEnemies = new Set(['all']);
         let selectedItemRuns = new Set(['all']);
         let selectedItemEnemies = new Set(['all']);
         let selectedDeathRuns = new Set(['all']);
@@ -1843,6 +1856,7 @@
             renderHeatmapRunSelectors(filteredPlayers);
             renderTurnQueryHeatmap(filteredPlayers);
             renderQueryTransitionHeatmap(filteredPlayers);
+            renderSubmitTurnStats(filteredPlayers);
             renderOxygenTrends(filteredPlayers);
             renderElectricityTrends(filteredPlayers);
             renderDeathCauseStats(filteredPlayers);
@@ -2056,6 +2070,7 @@
             const progressContentEl = document.getElementById('progressContent');
             const queryHeatmapEl = document.getElementById('queryHeatmapContent');
             const queryTransitionEl = document.getElementById('queryTransitionContent');
+            const submitTurnEl = document.getElementById('submitTurnContent');
             const oxygenChartEl = document.getElementById('oxygenChartContent');
             const electricityChartEl = document.getElementById('electricityChartContent');
             const deathCauseEl = document.getElementById('deathCauseContent');
@@ -2072,6 +2087,7 @@
                 progressContentEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 queryHeatmapEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 queryTransitionEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                submitTurnEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 oxygenChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 electricityChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 deathCauseEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
@@ -2091,6 +2107,7 @@
             progressContentEl.innerHTML = '<div class="loading">Calculating progress stats...</div>';
             queryHeatmapEl.innerHTML = '<div class="loading">Calculating query heatmap...</div>';
             queryTransitionEl.innerHTML = '<div class="loading">Calculating query transition heatmap...</div>';
+            submitTurnEl.innerHTML = '<div class="loading">Calculating submit turn stats...</div>';
             oxygenChartEl.innerHTML = '<div class="loading">Calculating oxygen trend stats...</div>';
             electricityChartEl.innerHTML = '<div class="loading">Calculating electricity trend stats...</div>';
             deathCauseEl.innerHTML = '<div class="loading">Calculating death cause stats...</div>';
@@ -2126,6 +2143,7 @@
                 renderProgressError(error.message);
                 renderHeatmapError(error.message);
                 renderTransitionHeatmapError(error.message);
+                renderSubmitTurnError(error.message);
                 renderOxygenError(error.message);
                 renderElectricityError(error.message);
                 renderDeathCauseError(error.message);
@@ -2155,6 +2173,11 @@
         function renderTransitionHeatmapError(message) {
             const queryTransitionEl = document.getElementById('queryTransitionContent');
             queryTransitionEl.innerHTML = `<div class="error">Error loading query transition heatmap: ${message}</div>`;
+        }
+
+        function renderSubmitTurnError(message) {
+            const submitTurnEl = document.getElementById('submitTurnContent');
+            submitTurnEl.innerHTML = `<div class="error">Error loading submit turn stats: ${message}</div>`;
         }
 
         function renderOxygenError(message) {
@@ -2398,12 +2421,83 @@
             return { rows, turnsFound };
         }
 
+        function collectQueryMistakeStats(content, selectedRunsSet, selectedEnemiesSet) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            let runNo = 0;
+            let currentEnemy = null;
+            let seenInputs = new Set();
+            let seenOutputs = new Set();
+            let totalQueries = 0;
+            let repeatInputCount = 0;
+            let outputAsInputCount = 0;
+            let eitherMistakeCount = 0;
+
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
+            const resetEncounterMemory = () => {
+                seenInputs = new Set();
+                seenOutputs = new Set();
+            };
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                    resetEncounterMemory();
+                }
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const roundNo = Number.parseInt(roundMatch[1], 10);
+                    if (roundNo === 1) runNo += 1;
+                    else if (runNo === 0) runNo = 1;
+                    resetEncounterMemory();
+                }
+                if (runNo === 0 && /^Query:/i.test(msg)) {
+                    runNo = 1;
+                }
+
+                if (msg.includes('Game start') || msg.includes('Game end: Go to title') || /Collect:\s*Memo/i.test(msg) || /wrong submit/i.test(msg)) {
+                    resetEncounterMemory();
+                }
+
+                const qm = msg.match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*(\d+)/i);
+                if (!qm) return;
+                if (!isRunSelected(runNo) || !isEnemySelected(currentEnemy)) return;
+                const input = Number.parseInt(qm[1], 10);
+                const output = Number.parseInt(qm[2], 10);
+                if (!Number.isFinite(input) || !Number.isFinite(output)) return;
+
+                totalQueries += 1;
+                const isRepeatInput = seenInputs.has(input);
+                const isOutputAsInput = seenOutputs.has(input);
+                if (isRepeatInput) repeatInputCount += 1;
+                if (isOutputAsInput) outputAsInputCount += 1;
+                if (isRepeatInput || isOutputAsInput) eitherMistakeCount += 1;
+
+                seenInputs.add(input);
+                seenOutputs.add(output);
+            });
+
+            return { totalQueries, repeatInputCount, outputAsInputCount, eitherMistakeCount };
+        }
+
         function renderTurnQueryHeatmap(playerSummaries) {
             const queryHeatmapEl = document.getElementById('queryHeatmapContent');
             const maxTurn = 20;
+            const displayMaxTurn = 12;
             const maxQuery = 20;
             const matrix = Array.from({ length: maxTurn }, () => Array(maxQuery).fill(0));
             let totalTurns = 0;
+            let totalQueries = 0;
+            let repeatInputCount = 0;
+            let outputAsInputCount = 0;
+            let eitherMistakeCount = 0;
             const availableRuns = collectAvailableRunNumbers(playerSummaries);
             const runSet = resolveSelectedRunsForHeatmap(selectedTurnHeatmapRuns, availableRuns);
             const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
@@ -2417,9 +2511,15 @@
                         matrix[r][c] += stats.rows[r][c];
                     }
                 }
+                const mistake = collectQueryMistakeStats(player.content, runSet, enemySet);
+                totalQueries += mistake.totalQueries;
+                repeatInputCount += mistake.repeatInputCount;
+                outputAsInputCount += mistake.outputAsInputCount;
+                eitherMistakeCount += mistake.eitherMistakeCount;
             });
 
-            const maxCount = Math.max(...matrix.flat(), 0);
+            const displayRows = matrix.slice(0, displayMaxTurn);
+            const maxCount = Math.max(...displayRows.flat(), 0);
             if (maxCount === 0) {
                 queryHeatmapEl.innerHTML = `
                     <div class="empty-state">
@@ -2431,7 +2531,7 @@
             }
 
             const headerCells = Array.from({ length: maxQuery }, (_, i) => `<th>${i + 1}</th>`).join('');
-            const bodyRows = matrix.map((row, rowIdx) => {
+            const bodyRows = displayRows.map((row, rowIdx) => {
                 const dataCells = row.map(value => {
                     const alpha = value > 0 ? (0.08 + (0.87 * (value / maxCount))) : 0.04;
                     const textColor = alpha > 0.55 ? '#f5f8ff' : '#1f2a44';
@@ -2440,8 +2540,21 @@
                 return `<tr><th>${rowIdx + 1}</th>${dataCells}</tr>`;
             }).join('');
 
+            const colTotals = Array(maxQuery).fill(0);
+            displayRows.forEach(row => {
+                for (let c = 0; c < maxQuery; c += 1) colTotals[c] += row[c];
+            });
+            const totalShownQueries = colTotals.reduce((a, b) => a + b, 0);
+            const ratioRow = colTotals.map(v => {
+                const pct = totalShownQueries > 0 ? ((v / totalShownQueries) * 100).toFixed(1) : '0.0';
+                return `<td>${pct}%</td>`;
+            }).join('');
+
+            const ratio = (n) => totalQueries > 0 ? ((n / totalQueries) * 100).toFixed(1) : '0.0';
+
             queryHeatmapEl.innerHTML = `
-                <div class="stats-meta">Aggregated turns: <b>${totalTurns}</b> | Axes: Turn Number (Y) x Queried Number A in "A-(B)-&gt;C" (X)</div>
+                <div class="stats-meta">Aggregated turns: <b>${totalTurns}</b> | Display turns: <b>1~${displayMaxTurn}</b> | Axes: Turn Number (Y) x Queried Number A in "A-(B)-&gt;C" (X)</div>
+                <div class="stats-meta">Mistake ratio in all selected queries: Repeat Input <b>${ratio(repeatInputCount)}%</b> (${repeatInputCount}/${totalQueries}), Output-as-Input <b>${ratio(outputAsInputCount)}%</b> (${outputAsInputCount}/${totalQueries}), Either <b>${ratio(eitherMistakeCount)}%</b> (${eitherMistakeCount}/${totalQueries}).</div>
                 <div class="heatmap-wrap">
                     <table class="heatmap-table">
                         <thead>
@@ -2452,6 +2565,10 @@
                         </thead>
                         <tbody>
                             ${bodyRows}
+                            <tr>
+                                <th>Total Ratio</th>
+                                ${ratioRow}
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -2581,6 +2698,211 @@
                     <span>Low</span>
                     <div class="heatmap-gradient"></div>
                     <span>High (max ${maxCount})</span>
+                </div>
+            `;
+        }
+
+        function collectSubmitTurnRecords(content) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const records = [];
+            let runNo = 0;
+            let roundNo = null;
+            let currentEnemy = null;
+            let playerTurn = 0;
+            const seen = new Set();
+            const keyOf = (type) => `${runNo}-${roundNo}-${type}`;
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (r === 1) {
+                        runNo += 1;
+                        currentEnemy = null;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                    roundNo = r;
+                    playerTurn = 0;
+                }
+
+                const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy)) {
+                    currentEnemy = enemy;
+                }
+
+                if (/Player turn:/i.test(msg)) {
+                    playerTurn += 1;
+                }
+
+                if (/^Submit:/i.test(msg) && runNo > 0 && Number.isFinite(roundNo)) {
+                    const key = keyOf('player');
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        records.push({
+                            type: 'player',
+                            runNo,
+                            roundNo,
+                            enemy: currentEnemy,
+                            turn: Math.max(playerTurn, 1)
+                        });
+                    }
+                }
+
+                if ((/game win:\s*enemy torpedo miss/i.test(msg) || /game end:\s*enemy torpedo hit/i.test(msg)) && runNo > 0 && Number.isFinite(roundNo)) {
+                    const key = keyOf('enemy');
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        records.push({
+                            type: 'enemy',
+                            runNo,
+                            roundNo,
+                            enemy: currentEnemy,
+                            turn: Math.max(playerTurn, 1)
+                        });
+                    }
+                }
+            });
+
+            return records;
+        }
+
+        function renderSubmitTurnSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('submitTurnRunSelect');
+            const enemySelectEl = document.getElementById('submitTurnEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedSubmitTurnRuns = normalizeSelectedRuns(selectedSubmitTurnRuns, availableRuns);
+            selectedSubmitTurnEnemies = normalizeSelectedEnemies(selectedSubmitTurnEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedSubmitTurnRuns, () => {
+                selectedSubmitTurnRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedSubmitTurnRuns.size === 0) selectedSubmitTurnRuns = new Set(['all']);
+                if (selectedSubmitTurnRuns.has('all') && selectedSubmitTurnRuns.size > 1) selectedSubmitTurnRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedSubmitTurnRuns.has(opt.value); });
+                renderSubmitTurnStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedSubmitTurnEnemies, () => {
+                selectedSubmitTurnEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedSubmitTurnEnemies.size === 0) selectedSubmitTurnEnemies = new Set(['all']);
+                if (selectedSubmitTurnEnemies.has('all') && selectedSubmitTurnEnemies.size > 1) selectedSubmitTurnEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedSubmitTurnEnemies.has(opt.value); });
+                renderSubmitTurnStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function renderSubmitTurnLineChart(title, statsByRound, color) {
+            const rounds = [1, 2, 3];
+            const points = rounds.map(r => statsByRound[r] || { avg: null, count: 0 });
+            const valid = points.filter(p => Number.isFinite(p.avg));
+            if (valid.length === 0) {
+                return `
+                    <div class="item-chart-card">
+                        <h4>${title}</h4>
+                        <div class="empty-state"><h4>No records</h4><p>No matching submit records.</p></div>
+                    </div>
+                `;
+            }
+
+            const yMax = Math.max(1, ...valid.map(v => v.avg));
+            const yTop = Math.max(1, Math.ceil((yMax + 1) / 2) * 2);
+            const svgWidth = 760;
+            const svgHeight = 260;
+            const leftPad = 44;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+            const xForRound = (r) => leftPad + ((r - 1) * (plotW / 2));
+            const yForVal = (v) => topPad + (plotH * (1 - (v / yTop)));
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(yTop * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForVal(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+
+            const xyPoints = rounds.map(r => {
+                const p = statsByRound[r];
+                if (!p || !Number.isFinite(p.avg)) return null;
+                return { x: xForRound(r), y: yForVal(p.avg), round: r, avg: p.avg, count: p.count };
+            }).filter(Boolean);
+            const poly = `<polyline points="${xyPoints.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"></polyline>`;
+            const dots = xyPoints.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.2" fill="${color}" stroke="#fff" stroke-width="1.1"></circle>
+                <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" fill="#334064" font-size="10">${p.avg.toFixed(1)}</text>`).join('');
+            const xLabels = rounds.map(r => `<text x="${xForRound(r)}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">Round ${r}</text>`).join('');
+            const meta = rounds.map(r => {
+                const p = statsByRound[r] || { avg: null, count: 0 };
+                return `R${r}: ${Number.isFinite(p.avg) ? p.avg.toFixed(2) : '-'} (n=${p.count || 0})`;
+            }).join(' | ');
+
+            return `
+                <div class="item-chart-card">
+                    <h4>${title}</h4>
+                    <div class="stats-meta">${meta}</div>
+                    <div class="item-chart-wrap">
+                        <div class="item-chart-plot">
+                            <svg class="item-chart-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                                ${yGridHtml}
+                                ${poly}
+                                ${dots}
+                                ${xLabels}
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSubmitTurnStats(playerSummaries) {
+            const contentEl = document.getElementById('submitTurnContent');
+            const { availableRuns, availableEnemies } = renderSubmitTurnSelectors(playerSummaries);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedSubmitTurnRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedSubmitTurnEnemies, availableEnemies);
+
+            const playerByRound = { 1: [], 2: [], 3: [] };
+            const enemyByRound = { 1: [], 2: [], 3: [] };
+            playerSummaries.forEach(player => {
+                const recs = collectSubmitTurnRecords(player.content);
+                recs.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    if (![1, 2, 3].includes(rec.roundNo)) return;
+                    if (!Number.isFinite(rec.turn)) return;
+                    if (rec.type === 'player') playerByRound[rec.roundNo].push(rec.turn);
+                    if (rec.type === 'enemy') enemyByRound[rec.roundNo].push(rec.turn);
+                });
+            });
+
+            const toStats = (bucket) => ({
+                1: { avg: bucket[1].length ? (bucket[1].reduce((a, b) => a + b, 0) / bucket[1].length) : null, count: bucket[1].length },
+                2: { avg: bucket[2].length ? (bucket[2].reduce((a, b) => a + b, 0) / bucket[2].length) : null, count: bucket[2].length },
+                3: { avg: bucket[3].length ? (bucket[3].reduce((a, b) => a + b, 0) / bucket[3].length) : null, count: bucket[3].length }
+            });
+
+            const playerStats = toStats(playerByRound);
+            const enemyStats = toStats(enemyByRound);
+            const totalPoints = [1, 2, 3].reduce((sum, r) => sum + playerStats[r].count + enemyStats[r].count, 0);
+            if (totalPoints === 0) {
+                contentEl.innerHTML = '<div class="empty-state"><h4>No submit turn data</h4><p>No matching player/enemy submit events for selected run/enemy filters.</p></div>';
+                return;
+            }
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Average submit turn by round (with selected run/enemy filters).</div>
+                <div class="item-charts">
+                    ${renderSubmitTurnLineChart('Player Submit Avg Turn', playerStats, '#2ca02c')}
+                    ${renderSubmitTurnLineChart('Enemy Submit Avg Turn', enemyStats, '#d62728')}
                 </div>
             `;
         }
