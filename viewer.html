@@ -2963,35 +2963,36 @@
             return { rows };
         }
 
-        function collectCenterCloserProgressStats(content, binCount, selectedRunsSet, selectedEnemiesSet) {
+        function collectCenterCloserProgressStats(content, maxTurn, binCount, selectedRunsSet, selectedEnemiesSet) {
             const entries = (content || [])
                 .map(extractTimestampMs)
                 .filter(Boolean)
                 .sort((a, b) => a.ts - b.ts);
 
-            const rows = Array.from({ length: 3 }, () => Array(binCount).fill(0));
-            const points = [[], [], []];
+            const rows = Array.from({ length: maxTurn }, () => Array(binCount).fill(0));
+            const points = Array.from({ length: maxTurn }, () => []);
             const focusEvents = [];
             let runNo = 0;
             let currentRound = null;
             let currentEnemy = null;
-            let roundStartTs = null;
+            let currentTurn = 0;
+            let turnStartTs = null;
 
             const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
             const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
 
-            const flushRound = (endTs) => {
-                if (!Number.isFinite(roundStartTs) || !Number.isFinite(endTs) || !Number.isFinite(currentRound) || currentRound < 1 || currentRound > 3) {
+            const flushTurn = (endTs) => {
+                if (!Number.isFinite(turnStartTs) || !Number.isFinite(endTs) || !Number.isFinite(currentTurn) || currentTurn < 1 || currentTurn > maxTurn) {
                     focusEvents.length = 0;
                     return;
                 }
-                const duration = Math.max(endTs - roundStartTs, 1);
+                const duration = Math.max(endTs - turnStartTs, 1);
                 focusEvents.forEach(ev => {
                     if (!isRunSelected(ev.runNo) || !isEnemySelected(ev.enemy)) return;
-                    const progress = Math.min(Math.max((ev.ts - roundStartTs) / duration, 0), 0.999999);
+                    const progress = Math.min(Math.max((ev.ts - turnStartTs) / duration, 0), 0.999999);
                     const binIdx = Math.min(Math.floor(progress * binCount), binCount - 1);
-                    rows[ev.round - 1][binIdx] += 1;
-                    points[ev.round - 1].push(progress);
+                    rows[ev.turn - 1][binIdx] += 1;
+                    points[ev.turn - 1].push(progress);
                 });
                 focusEvents.length = 0;
             };
@@ -3007,8 +3008,8 @@
                 const roundMatch = msg.match(/Round:\s*([123])\b/i);
                 if (roundMatch) {
                     const r = Number.parseInt(roundMatch[1], 10);
-                    if (Number.isFinite(roundStartTs)) {
-                        flushRound(entry.ts);
+                    if (Number.isFinite(turnStartTs)) {
+                        flushTurn(entry.ts);
                     }
                     if (r === 1) {
                         runNo += 1;
@@ -3016,32 +3017,44 @@
                         runNo = 1;
                     }
                     currentRound = r;
-                    roundStartTs = entry.ts;
+                    currentTurn = 0;
+                    turnStartTs = null;
                 }
 
-                if (runNo === 0 && /View focused:\s*CenterPanelCloserView/i.test(msg)) {
+                if (runNo === 0 && (msg.includes('Player turn:') || /View focused:\s*CenterPanelCloserView/i.test(msg))) {
                     runNo = 1;
                 }
 
-                if (/View focused:\s*CenterPanelCloserView/i.test(msg) && Number.isFinite(currentRound) && Number.isFinite(roundStartTs)) {
+                if (/Player turn:/i.test(msg)) {
+                    if (Number.isFinite(turnStartTs)) {
+                        flushTurn(entry.ts);
+                    }
+                    currentTurn += 1;
+                    turnStartTs = entry.ts;
+                    return;
+                }
+
+                if (/View focused:\s*CenterPanelCloserView/i.test(msg) && Number.isFinite(currentRound) && Number.isFinite(turnStartTs) && currentTurn >= 1 && currentTurn <= maxTurn) {
                     focusEvents.push({
                         ts: entry.ts,
                         runNo,
                         round: currentRound,
+                        turn: currentTurn,
                         enemy: currentEnemy
                     });
                     return;
                 }
 
-                if ((/Collect:\s*Memo/i.test(msg) || /wrong submit/i.test(msg) || /Game end:/i.test(msg)) && Number.isFinite(roundStartTs)) {
-                    flushRound(entry.ts);
-                    roundStartTs = null;
+                if ((/Collect:\s*Memo/i.test(msg) || /wrong submit/i.test(msg) || /Game end:/i.test(msg)) && Number.isFinite(turnStartTs)) {
+                    flushTurn(entry.ts);
+                    turnStartTs = null;
                     currentRound = null;
+                    currentTurn = 0;
                 }
             });
 
-            if (Number.isFinite(roundStartTs) && entries.length > 0) {
-                flushRound(entries[entries.length - 1].ts);
+            if (Number.isFinite(turnStartTs) && entries.length > 0) {
+                flushTurn(entries[entries.length - 1].ts);
             }
 
             return { rows, points };
@@ -3088,29 +3101,30 @@
             const runSet = resolveSelectedRunsForHeatmap(selectedCenterCloserRuns, availableRuns);
             const enemySet = resolveSelectedEnemiesForHeatmap(selectedCenterCloserEnemies, availableEnemies);
             const sumMatrix = Array.from({ length: 3 }, () => Array(maxTurn).fill(0));
-            const sumProgressMatrix = Array.from({ length: 3 }, () => Array(progressBins).fill(0));
-            const progressPoints = [[], [], []];
+            const sumProgressMatrix = Array.from({ length: maxTurn }, () => Array(progressBins).fill(0));
+            const progressPoints = Array.from({ length: maxTurn }, () => []);
             const playerCount = playerSummaries.length;
 
             playerSummaries.forEach(player => {
                 const stats = collectCenterCloserStats(player.content, maxTurn, runSet, enemySet);
-                const progressStats = collectCenterCloserProgressStats(player.content, progressBins, runSet, enemySet);
+                const progressStats = collectCenterCloserProgressStats(player.content, maxTurn, progressBins, runSet, enemySet);
                 for (let r = 0; r < 3; r += 1) {
                     for (let c = 0; c < maxTurn; c += 1) {
                         sumMatrix[r][c] += stats.rows[r][c];
                     }
+                }
+                for (let turnIdx = 0; turnIdx < maxTurn; turnIdx += 1) {
                     for (let c = 0; c < progressBins; c += 1) {
-                        sumProgressMatrix[r][c] += progressStats.rows[r][c];
+                        sumProgressMatrix[turnIdx][c] += progressStats.rows[turnIdx][c];
                     }
-                    progressPoints[r].push(...(progressStats.points[r] || []));
+                    progressPoints[turnIdx].push(...(progressStats.points[turnIdx] || []));
                 }
             });
 
             const matrix = sumMatrix.map(row => row.map(value => playerCount > 0 ? (value / playerCount) : 0));
-            const progressMatrix = sumProgressMatrix.map(row => row.map(value => playerCount > 0 ? (value / playerCount) : 0));
             const maxCount = Math.max(...matrix.flat(), 0);
-            const maxProgressCount = Math.max(...progressMatrix.flat(), 0);
-            if (maxCount === 0 && maxProgressCount === 0) {
+            const totalTurnProgressEvents = progressPoints.flat().length;
+            if (maxCount === 0 && totalTurnProgressEvents === 0) {
                 contentEl.innerHTML = `
                     <div class="empty-state">
                         <h4>No CenterPanelCloserView logs found</h4>
@@ -3140,56 +3154,53 @@
                 return `<td>${pct}%</td>`;
             }).join('');
 
-            const progressColTotals = Array(progressBins).fill(0);
-            progressMatrix.forEach(row => {
-                for (let c = 0; c < progressBins; c += 1) progressColTotals[c] += row[c];
-            });
-            const totalAvgProgressViews = progressColTotals.reduce((a, b) => a + b, 0);
-            const roundColors = ['#c96a1c', '#1b7154', '#4a63d8'];
-            const plotWidth = 820;
-            const plotHeight = 300;
-            const margin = { top: 24, right: 18, bottom: 42, left: 78 };
+            const plotWidth = 1180;
+            const plotHeight = 290;
+            const margin = { top: 24, right: 20, bottom: 42, left: 26 };
             const innerWidth = plotWidth - margin.left - margin.right;
-            const innerHeight = plotHeight - margin.top - margin.bottom;
-            const rowHeight = innerHeight / 3;
-            const laneCenters = [0, 1, 2].map(i => margin.top + (rowHeight * i) + (rowHeight / 2));
-            const xTicks = Array.from({ length: 11 }, (_, i) => {
-                const x = margin.left + ((innerWidth * i) / 10);
-                const label = `${i * 10}%`;
+            const baselineY = plotHeight - margin.bottom;
+            const laneHeight = plotHeight - margin.top - margin.bottom;
+            const segmentGap = 10;
+            const segmentWidth = (innerWidth - (segmentGap * (maxTurn - 1))) / maxTurn;
+            const xTicks = Array.from({ length: maxTurn }, (_, turnIdx) => {
+                const segmentLeft = margin.left + (turnIdx * (segmentWidth + segmentGap));
                 return `
-                    <line x1="${x}" y1="${margin.top}" x2="${x}" y2="${plotHeight - margin.bottom}" stroke="rgba(102,126,234,0.14)" stroke-width="1" />
-                    <text x="${x}" y="${plotHeight - 16}" text-anchor="middle" font-size="11" fill="#52607d">${label}</text>
+                    <line x1="${segmentLeft}" y1="${margin.top}" x2="${segmentLeft}" y2="${baselineY}" stroke="rgba(102,126,234,0.12)" stroke-width="1" />
+                    <text x="${segmentLeft + (segmentWidth / 2)}" y="${plotHeight - 16}" text-anchor="middle" font-size="11" fill="#52607d">T${turnIdx + 1}</text>
+                    <text x="${segmentLeft}" y="${margin.top - 6}" text-anchor="start" font-size="10" fill="#8290b5">0%</text>
+                    <text x="${segmentLeft + segmentWidth}" y="${margin.top - 6}" text-anchor="end" font-size="10" fill="#8290b5">100%</text>
                 `;
             }).join('');
-            const yGuides = laneCenters.map((y, idx) => `
-                <line x1="${margin.left}" y1="${y}" x2="${plotWidth - margin.right}" y2="${y}" stroke="rgba(84,96,138,0.18)" stroke-width="1" />
-                <text x="${margin.left - 12}" y="${y + 4}" text-anchor="end" font-size="12" fill="#42507a" font-weight="700">Round ${idx + 1}</text>
-            `).join('');
-            const progressDots = progressPoints.map((points, roundIdx) => {
-                const laneCenter = laneCenters[roundIdx];
-                const laneAmplitude = Math.max((rowHeight / 2) - 10, 8);
+            const segmentFrames = Array.from({ length: maxTurn }, (_, turnIdx) => {
+                const segmentLeft = margin.left + (turnIdx * (segmentWidth + segmentGap));
+                return `<rect x="${segmentLeft}" y="${margin.top}" width="${segmentWidth}" height="${laneHeight}" fill="rgba(255,255,255,0.5)" stroke="rgba(102,126,234,0.1)" stroke-width="1" />`;
+            }).join('');
+            const progressDots = progressPoints.map((points, turnIdx) => {
+                const segmentLeft = margin.left + (turnIdx * (segmentWidth + segmentGap));
+                const laneAmplitude = Math.max((laneHeight / 2) - 10, 10);
                 return points.map((progress, pointIdx) => {
-                    const x = margin.left + (Math.min(Math.max(progress, 0), 1) * innerWidth);
-                    const jitterRatio = deterministicCenterCloserJitter((roundIdx * 100000) + pointIdx) - 0.5;
-                    const y = laneCenter + (jitterRatio * laneAmplitude * 1.6);
-                    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3.1" fill="${roundColors[roundIdx]}" fill-opacity="0.33" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.7" />`;
+                    const x = segmentLeft + (Math.min(Math.max(progress, 0), 1) * segmentWidth);
+                    const jitterRatio = deterministicCenterCloserJitter((turnIdx * 100000) + pointIdx) - 0.5;
+                    const y = baselineY - 10 + (jitterRatio * laneAmplitude * 1.35);
+                    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.9" fill="#1b7154" fill-opacity="0.28" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.7" />`;
                 }).join('');
             }).join('');
-            const densityLines = progressPoints.map((points, roundIdx) => {
-                const path = buildCenterCloserDensityPath(points, laneCenters[roundIdx], rowHeight, margin.left, innerWidth);
+            const densityLines = progressPoints.map((points, turnIdx) => {
+                const segmentLeft = margin.left + (turnIdx * (segmentWidth + segmentGap));
+                const path = buildCenterCloserDensityPath(points, baselineY, laneHeight, segmentLeft, segmentWidth);
                 if (!path) return '';
-                return `<path d="${path}" fill="none" stroke="${roundColors[roundIdx]}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" />`;
+                return `<path d="${path}" fill="none" stroke="#0f5d43" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" />`;
             }).join('');
             const progressLegend = progressPoints.map((points, idx) => `
                 <span class="oxygen-legend-item">
-                    <span class="oxygen-legend-swatch" style="background:${roundColors[idx]}; width:12px; height:12px; border-radius:999px;"></span>
-                    Round ${idx + 1} (${points.length} events)
+                    <span class="oxygen-legend-swatch" style="background:#1b7154; width:12px; height:12px; border-radius:999px;"></span>
+                    T${idx + 1} (${points.length})
                 </span>
             `).join('');
 
             contentEl.innerHTML = `
                 <div class="stats-meta">Average CenterPanelCloserView frequency per player. Players in filter: <b>${playerCount}</b> | Avg total views per player: <b>${totalAvgViews.toFixed(2)}</b>.</div>
-                <div class="stats-meta">Top heatmap uses query turn index. Bottom plot shows individual focus events across actual round-time progress from 0% to 100%.</div>
+                <div class="stats-meta">Top heatmap uses query turn index. Bottom plot normalizes each turn's own elapsed time to 0%~100%, then lays Turn 1~12 left to right.</div>
                 <div class="heatmap-wrap">
                     <table class="heatmap-table">
                         <thead>
@@ -3213,17 +3224,16 @@
                     <span>High (max ${maxCount.toFixed(2)})</span>
                 </div>
                 <div class="scatter-wrap">
-                    <svg class="scatter-plot" viewBox="0 0 ${plotWidth} ${plotHeight}" preserveAspectRatio="none" aria-label="CenterPanelCloserView time progress scatter plot">
-                        <rect x="${margin.left}" y="${margin.top}" width="${innerWidth}" height="${innerHeight}" fill="rgba(255,255,255,0.72)" />
+                    <svg class="scatter-plot" viewBox="0 0 ${plotWidth} ${plotHeight}" preserveAspectRatio="none" aria-label="CenterPanelCloserView turn progress scatter plot">
+                        <rect x="${margin.left}" y="${margin.top}" width="${innerWidth}" height="${laneHeight}" fill="rgba(255,255,255,0.72)" />
                         ${xTicks}
-                        ${yGuides}
-                        <line x1="${margin.left}" y1="${plotHeight - margin.bottom}" x2="${plotWidth - margin.right}" y2="${plotHeight - margin.bottom}" stroke="#62709c" stroke-width="1.2" />
-                        <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${plotHeight - margin.bottom}" stroke="#62709c" stroke-width="1.2" />
+                        ${segmentFrames}
+                        <line x1="${margin.left}" y1="${baselineY}" x2="${plotWidth - margin.right}" y2="${baselineY}" stroke="#62709c" stroke-width="1.2" />
                         ${densityLines}
                         ${progressDots}
                     </svg>
                 </div>
-                <div class="stats-meta">Time-progress distribution uses <b>${progressPoints.flat().length}</b> total focus events. Average total views per player on this axis: <b>${totalAvgProgressViews.toFixed(2)}</b>.</div>
+                <div class="stats-meta">Turn-progress distribution uses <b>${totalTurnProgressEvents}</b> total focus events across Turn 1~12.</div>
                 <div class="oxygen-legend">${progressLegend}</div>
             `;
         }
