@@ -194,6 +194,13 @@
             border-left-color: #5a6fd8;
         }
 
+        .log-entry.target-entry {
+            background: #fff6d6;
+            outline: 2px solid #f2c84b;
+            border-radius: 6px;
+            scroll-margin-top: 16px;
+        }
+
         .log-item .user-id {
             font-weight: bold;
             font-size: 1.1em;
@@ -430,6 +437,24 @@
             border-radius: 999px;
             background: linear-gradient(90deg, rgba(102,126,234,0.08) 0%, rgba(40,72,170,0.95) 100%);
             border: 1px solid #d7deff;
+        }
+
+        .scatter-wrap {
+            margin-top: 14px;
+            overflow-x: auto;
+            border: 1px solid #d7deff;
+            border-radius: 10px;
+            background:
+                linear-gradient(to right, rgba(102,126,234,0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(102,126,234,0.08) 1px, transparent 1px),
+                #fbfcff;
+            background-size: 10% 100%, 100% 33.333%;
+        }
+
+        .scatter-plot {
+            min-width: 820px;
+            height: 300px;
+            display: block;
         }
 
         .oxygen-section {
@@ -1038,6 +1063,17 @@
             <div id="queryTransitionContent" class="loading">Loading query transition heatmap...</div>
         </div>
 
+        <div class="heatmap-section" id="centerCloserHeatmapSection">
+            <h3>CenterPanelCloserView Frequency by Round/Query Turn</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="centerCloserRunSelect">Select run(s):</label>
+                <select id="centerCloserRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="centerCloserEnemySelect">Select Enemy(s):</label>
+                <select id="centerCloserEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="centerCloserHeatmapContent" class="loading">Loading CenterPanelCloserView stats...</div>
+        </div>
+
         <div class="oxygen-section" id="submitTurnSection">
             <h3>Submit Turn Averages by Round</h3>
             <div class="oxygen-controls" style="margin-bottom:10px;">
@@ -1108,6 +1144,17 @@
             <div id="winCauseDebugContent"></div>
         </div>
 
+        <div class="oxygen-section" id="outcomeTotalSection">
+            <h3>Round Total Outcomes (Win + Death)</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="outcomeTotalRunSelect">Select run(s):</label>
+                <select id="outcomeTotalRunSelect" class="oxygen-run-select" multiple size="6"></select>
+                <label for="outcomeTotalEnemySelect">Select Enemy(s):</label>
+                <select id="outcomeTotalEnemySelect" class="oxygen-run-select" multiple size="6"></select>
+            </div>
+            <div id="outcomeTotalContent" class="loading">Loading total outcome stats...</div>
+        </div>
+
         <div class="lucky-section" id="luckySection">
             <h3>Feeling Lucky Board Viewer</h3>
             <div class="lucky-controls">
@@ -1165,11 +1212,14 @@
         let cachedSearchResults = [];
         let cachedQueryPatternResults = [];
         let activeSearchTab = 'text';
+        let pendingLogScrollTarget = null;
         let cachedDepthWinRateData = null;
         let selectedTurnHeatmapRuns = new Set();
         let selectedTransitionHeatmapRuns = new Set();
         let selectedTurnHeatmapEnemies = new Set();
         let selectedTransitionHeatmapEnemies = new Set();
+        let selectedCenterCloserRuns = new Set();
+        let selectedCenterCloserEnemies = new Set();
         let selectedSubmitTurnRuns = new Set(['all']);
         let selectedSubmitTurnEnemies = new Set(['all']);
         let selectedItemRuns = new Set(['all']);
@@ -1180,6 +1230,8 @@
         let selectedDeathOxygenEnemies = new Set(['all']);
         let selectedWinRuns = new Set(['all']);
         let selectedWinEnemies = new Set(['all']);
+        let selectedOutcomeTotalRuns = new Set(['all']);
+        let selectedOutcomeTotalEnemies = new Set(['all']);
         let cachedWinCauseDebugRows = [];
         let autoRefreshIntervalId = null;
 
@@ -1279,14 +1331,16 @@
 
 
         // Select and load a specific log file
-        async function selectLog(userId) {
+        async function selectLog(userId, options = null) {
             selectedUserId = userId;
+            pendingLogScrollTarget = options || null;
             
             // Update active state
             document.querySelectorAll('.log-item').forEach(item => {
                 item.classList.remove('active');
             });
-            document.querySelector(`[data-user-id="${userId}"]`).classList.add('active');
+            const activeEl = document.querySelector(`[data-user-id="${userId}"]`);
+            if (activeEl) activeEl.classList.add('active');
 
             const contentTitleEl = document.getElementById('contentTitle');
             const logContentEl = document.getElementById('logContent');
@@ -1327,10 +1381,12 @@
                 return;
             }
 
-            const entriesHtml = logData.content.map(entry => {
+            const targetIndex = findTargetLogEntryIndex(logData.content, pendingLogScrollTarget);
+            const entriesHtml = logData.content.map((entry, idx) => {
                 const parsed = parseLogEntry(entry);
+                const targetClass = idx === targetIndex ? ' target-entry' : '';
                 return `
-                    <div class="log-entry">
+                    <div class="log-entry${targetClass}" data-entry-index="${idx + 1}">
                         <span class="created">[created: ${parsed.created}]</span>
                         <span class="message">${parsed.message}</span>
                     </div>
@@ -1338,6 +1394,78 @@
             }).join('');
 
             logContentEl.innerHTML = entriesHtml;
+            if (targetIndex >= 0) {
+                const targetEl = logContentEl.querySelector(`.log-entry[data-entry-index="${targetIndex + 1}"]`);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+            pendingLogScrollTarget = null;
+        }
+
+        function findTargetLogEntryIndex(content, target) {
+            if (!target || !Array.isArray(content) || content.length === 0) return -1;
+            if (Number.isFinite(target.entryNo) && target.entryNo >= 1 && target.entryNo <= content.length) {
+                return target.entryNo - 1;
+            }
+
+            if (target.created) {
+                const createdIdx = content.findIndex(entry => {
+                    const parsed = parseLogEntry(entry);
+                    return parsed.created === target.created;
+                });
+                if (createdIdx >= 0) return createdIdx;
+            }
+
+            if (Number.isFinite(target.runNo) && Number.isFinite(target.roundNo)) {
+                let currentRun = 0;
+                let currentRound = null;
+                let currentEnemy = null;
+                let encounterStartIdx = -1;
+
+                for (let i = 0; i < content.length; i += 1) {
+                    const parsed = parseLogEntry(content[i]);
+                    const msg = parsed.message || '';
+
+                    const enemy = parseEnemyFromMessage(msg);
+                    if (Number.isFinite(enemy)) {
+                        currentEnemy = enemy;
+                        if (currentRun === target.runNo && currentRound === target.roundNo && encounterStartIdx < 0) {
+                            encounterStartIdx = i;
+                        }
+                    }
+
+                    const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                    if (roundMatch) {
+                        const r = Number.parseInt(roundMatch[1], 10);
+                        if (r === 1) currentRun += 1;
+                        else if (currentRun === 0) currentRun = 1;
+                        currentRound = r;
+                        if (currentRun === target.runNo && currentRound === target.roundNo) {
+                            encounterStartIdx = i;
+                            if (!Number.isFinite(target.enemy) || currentEnemy === target.enemy) {
+                                return encounterStartIdx;
+                            }
+                        }
+                    }
+
+                    if (currentRun === target.runNo && currentRound === target.roundNo) {
+                        if (!Number.isFinite(target.enemy) || currentEnemy === target.enemy) {
+                            return encounterStartIdx >= 0 ? encounterStartIdx : i;
+                        }
+                    }
+                }
+            }
+
+            if (target.messageContains) {
+                const msgIdx = content.findIndex(entry => {
+                    const parsed = parseLogEntry(entry);
+                    return (parsed.message || '').includes(target.messageContains);
+                });
+                if (msgIdx >= 0) return msgIdx;
+            }
+
+            return -1;
         }
 
         // Parse log entry format: [timestamp] [created: timestamp] message
@@ -1572,7 +1700,11 @@
             if (!Array.isArray(cachedSearchResults)) return;
             const rec = cachedSearchResults[index];
             if (!rec || !rec.userId) return;
-            await selectLog(rec.userId);
+            await selectLog(rec.userId, {
+                entryNo: rec.entryNo,
+                created: rec.created,
+                messageContains: rec.message
+            });
         }
 
         function parseQueryPatternInput(text) {
@@ -1593,6 +1725,26 @@
             let turnNo = 0;
             let turnInputs = {};
             let turnTouched = {};
+
+            const parseTurnInput = (message) => {
+                const msg = message || '';
+                const queryMatch = msg.match(/^Query:\s*(\d+)\s*-\([^)]*\)->\s*.+$/i);
+                if (queryMatch) {
+                    return Number.parseInt(queryMatch[1], 10);
+                }
+
+                const lineScanMatch = msg.match(/^Line scan:\s*(\d+)\b/i);
+                if (lineScanMatch) {
+                    return Number.parseInt(lineScanMatch[1], 10);
+                }
+
+                const passiveSonarMatch = msg.match(/^Passive sonar:\s*(\d+)\b/i);
+                if (passiveSonarMatch) {
+                    return Number.parseInt(passiveSonarMatch[1], 10);
+                }
+
+                return null;
+            };
 
             const flushRecord = () => {
                 if (runNo <= 0 || !Number.isFinite(roundNo) || !Number.isFinite(currentEnemy)) return;
@@ -1641,9 +1793,9 @@
                     continue;
                 }
 
-                const qm = msg.match(/Query:\s*(\d+)\s*-\(\s*\d+\s*\)->\s*\d+/i);
-                if (qm && turnNo > 0 && !turnTouched[`q-${turnNo}`]) {
-                    turnInputs[turnNo] = Number.parseInt(qm[1], 10);
+                const inputNumber = parseTurnInput(msg);
+                if (Number.isFinite(inputNumber) && turnNo > 0 && !turnTouched[`q-${turnNo}`]) {
+                    turnInputs[turnNo] = inputNumber;
                     turnTouched[`q-${turnNo}`] = true;
                 }
 
@@ -1751,7 +1903,11 @@
             if (!Array.isArray(cachedQueryPatternResults)) return;
             const rec = cachedQueryPatternResults[index];
             if (!rec || !rec.userId) return;
-            await selectLog(rec.userId);
+            await selectLog(rec.userId, {
+                runNo: rec.runNo,
+                roundNo: rec.roundNo,
+                enemy: rec.enemy
+            });
         }
 
         function extractVersionFromMessage(message) {
@@ -1856,12 +2012,14 @@
             renderHeatmapRunSelectors(filteredPlayers);
             renderTurnQueryHeatmap(filteredPlayers);
             renderQueryTransitionHeatmap(filteredPlayers);
+            renderCenterCloserHeatmap(filteredPlayers);
             renderSubmitTurnStats(filteredPlayers);
             renderOxygenTrends(filteredPlayers);
             renderElectricityTrends(filteredPlayers);
             renderDeathCauseStats(filteredPlayers);
             renderDeathOxygenStats(filteredPlayers);
             renderWinCauseStats(filteredPlayers);
+            renderOutcomeTotalStats(filteredPlayers);
             prepareLuckyBoardPairs(filteredPlayers);
             renderItemUsageStats(filteredPlayers);
             renderDepthWinRateStats(filteredPlayers);
@@ -2070,12 +2228,14 @@
             const progressContentEl = document.getElementById('progressContent');
             const queryHeatmapEl = document.getElementById('queryHeatmapContent');
             const queryTransitionEl = document.getElementById('queryTransitionContent');
+            const centerCloserHeatmapEl = document.getElementById('centerCloserHeatmapContent');
             const submitTurnEl = document.getElementById('submitTurnContent');
             const oxygenChartEl = document.getElementById('oxygenChartContent');
             const electricityChartEl = document.getElementById('electricityChartContent');
             const deathCauseEl = document.getElementById('deathCauseContent');
             const deathOxygenEl = document.getElementById('deathOxygenContent');
             const winCauseEl = document.getElementById('winCauseContent');
+            const outcomeTotalEl = document.getElementById('outcomeTotalContent');
             const luckyEl = document.getElementById('luckyContent');
             const itemStatsEl = document.getElementById('itemStatsContent');
             const depthWinRateEl = document.getElementById('depthWinRateContent');
@@ -2087,12 +2247,14 @@
                 progressContentEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 queryHeatmapEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 queryTransitionEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                centerCloserHeatmapEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 submitTurnEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 oxygenChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 electricityChartEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 deathCauseEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 deathOxygenEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 winCauseEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
+                outcomeTotalEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 luckyEl.innerHTML = '<div class="empty-state"><h4>No board data</h4><p>No log files found</p></div>';
                 itemStatsEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
                 depthWinRateEl.innerHTML = '<div class="empty-state"><h4>No stats available</h4><p>No log files found</p></div>';
@@ -2107,12 +2269,14 @@
             progressContentEl.innerHTML = '<div class="loading">Calculating progress stats...</div>';
             queryHeatmapEl.innerHTML = '<div class="loading">Calculating query heatmap...</div>';
             queryTransitionEl.innerHTML = '<div class="loading">Calculating query transition heatmap...</div>';
+            centerCloserHeatmapEl.innerHTML = '<div class="loading">Calculating CenterPanelCloserView stats...</div>';
             submitTurnEl.innerHTML = '<div class="loading">Calculating submit turn stats...</div>';
             oxygenChartEl.innerHTML = '<div class="loading">Calculating oxygen trend stats...</div>';
             electricityChartEl.innerHTML = '<div class="loading">Calculating electricity trend stats...</div>';
             deathCauseEl.innerHTML = '<div class="loading">Calculating death cause stats...</div>';
             deathOxygenEl.innerHTML = '<div class="loading">Calculating death oxygen stats...</div>';
             winCauseEl.innerHTML = '<div class="loading">Calculating win cause stats...</div>';
+            outcomeTotalEl.innerHTML = '<div class="loading">Calculating total outcome stats...</div>';
             luckyEl.innerHTML = '<div class="loading">Collecting enemy/guess board pairs...</div>';
             itemStatsEl.innerHTML = '<div class="loading">Calculating item usage stats...</div>';
             depthWinRateEl.innerHTML = '<div class="loading">Calculating enemy win rate stats...</div>';
@@ -2143,12 +2307,14 @@
                 renderProgressError(error.message);
                 renderHeatmapError(error.message);
                 renderTransitionHeatmapError(error.message);
+                renderCenterCloserHeatmapError(error.message);
                 renderSubmitTurnError(error.message);
                 renderOxygenError(error.message);
                 renderElectricityError(error.message);
                 renderDeathCauseError(error.message);
                 renderDeathOxygenError(error.message);
                 renderWinCauseError(error.message);
+                renderOutcomeTotalError(error.message);
                 document.getElementById('luckyContent').innerHTML = `<div class="error">Error loading lucky board view: ${error.message}</div>`;
                 document.getElementById('itemStatsContent').innerHTML = `<div class="error">Error loading item usage stats: ${error.message}</div>`;
                 renderDepthWinRateError(error.message);
@@ -2173,6 +2339,11 @@
         function renderTransitionHeatmapError(message) {
             const queryTransitionEl = document.getElementById('queryTransitionContent');
             queryTransitionEl.innerHTML = `<div class="error">Error loading query transition heatmap: ${message}</div>`;
+        }
+
+        function renderCenterCloserHeatmapError(message) {
+            const centerCloserHeatmapEl = document.getElementById('centerCloserHeatmapContent');
+            centerCloserHeatmapEl.innerHTML = `<div class="error">Error loading CenterPanelCloserView stats: ${message}</div>`;
         }
 
         function renderSubmitTurnError(message) {
@@ -2203,6 +2374,11 @@
         function renderWinCauseError(message) {
             const winCauseEl = document.getElementById('winCauseContent');
             winCauseEl.innerHTML = `<div class="error">Error loading win cause stats: ${message}</div>`;
+        }
+
+        function renderOutcomeTotalError(message) {
+            const outcomeTotalEl = document.getElementById('outcomeTotalContent');
+            outcomeTotalEl.innerHTML = `<div class="error">Error loading total outcome stats: ${message}</div>`;
         }
 
         function renderDepthWinRateError(message) {
@@ -2699,6 +2875,356 @@
                     <div class="heatmap-gradient"></div>
                     <span>High (max ${maxCount})</span>
                 </div>
+            `;
+        }
+
+        function renderCenterCloserSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('centerCloserRunSelect');
+            const enemySelectEl = document.getElementById('centerCloserEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedCenterCloserRuns = normalizeSelectedRuns(selectedCenterCloserRuns, availableRuns);
+            selectedCenterCloserEnemies = normalizeSelectedEnemies(selectedCenterCloserEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedCenterCloserRuns, () => {
+                selectedCenterCloserRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedCenterCloserRuns.size === 0) selectedCenterCloserRuns = new Set(['all']);
+                if (selectedCenterCloserRuns.has('all') && selectedCenterCloserRuns.size > 1) selectedCenterCloserRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedCenterCloserRuns.has(opt.value); });
+                renderCenterCloserHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedCenterCloserEnemies, () => {
+                selectedCenterCloserEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedCenterCloserEnemies.size === 0) selectedCenterCloserEnemies = new Set(['all']);
+                if (selectedCenterCloserEnemies.has('all') && selectedCenterCloserEnemies.size > 1) selectedCenterCloserEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedCenterCloserEnemies.has(opt.value); });
+                renderCenterCloserHeatmap(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function collectCenterCloserStats(content, maxTurn, selectedRunsSet, selectedEnemiesSet) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rows = Array.from({ length: 3 }, () => Array(maxTurn).fill(0));
+            let runNo = 0;
+            let currentRound = null;
+            let currentEnemy = null;
+            let turnIndex = 0;
+
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                    turnIndex = 0;
+                }
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (r === 1) {
+                        runNo += 1;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                    currentRound = r;
+                    turnIndex = 0;
+                }
+
+                if (runNo === 0 && (msg.includes('Player turn:') || /View focused:\s*CenterPanelCloserView/i.test(msg))) {
+                    runNo = 1;
+                }
+
+                if (msg.includes('Player turn:')) {
+                    turnIndex += 1;
+                    return;
+                }
+
+                if (!/View focused:\s*CenterPanelCloserView/i.test(msg)) {
+                    return;
+                }
+                if (!Number.isFinite(currentRound) || currentRound < 1 || currentRound > 3) return;
+                if (turnIndex <= 0 || turnIndex > maxTurn) return;
+                if (!isRunSelected(runNo) || !isEnemySelected(currentEnemy)) return;
+
+                rows[currentRound - 1][turnIndex - 1] += 1;
+            });
+
+            return { rows };
+        }
+
+        function collectCenterCloserProgressStats(content, binCount, selectedRunsSet, selectedEnemiesSet) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rows = Array.from({ length: 3 }, () => Array(binCount).fill(0));
+            const points = [[], [], []];
+            const focusEvents = [];
+            let runNo = 0;
+            let currentRound = null;
+            let currentEnemy = null;
+            let roundStartTs = null;
+
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
+
+            const flushRound = (endTs) => {
+                if (!Number.isFinite(roundStartTs) || !Number.isFinite(endTs) || !Number.isFinite(currentRound) || currentRound < 1 || currentRound > 3) {
+                    focusEvents.length = 0;
+                    return;
+                }
+                const duration = Math.max(endTs - roundStartTs, 1);
+                focusEvents.forEach(ev => {
+                    if (!isRunSelected(ev.runNo) || !isEnemySelected(ev.enemy)) return;
+                    const progress = Math.min(Math.max((ev.ts - roundStartTs) / duration, 0), 0.999999);
+                    const binIdx = Math.min(Math.floor(progress * binCount), binCount - 1);
+                    rows[ev.round - 1][binIdx] += 1;
+                    points[ev.round - 1].push(progress);
+                });
+                focusEvents.length = 0;
+            };
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+
+                const enemyMatch = msg.match(/Enemy\s*[:=]\s*(\d+)/i);
+                if (enemyMatch) {
+                    currentEnemy = Number.parseInt(enemyMatch[1], 10);
+                }
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (Number.isFinite(roundStartTs)) {
+                        flushRound(entry.ts);
+                    }
+                    if (r === 1) {
+                        runNo += 1;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                    currentRound = r;
+                    roundStartTs = entry.ts;
+                }
+
+                if (runNo === 0 && /View focused:\s*CenterPanelCloserView/i.test(msg)) {
+                    runNo = 1;
+                }
+
+                if (/View focused:\s*CenterPanelCloserView/i.test(msg) && Number.isFinite(currentRound) && Number.isFinite(roundStartTs)) {
+                    focusEvents.push({
+                        ts: entry.ts,
+                        runNo,
+                        round: currentRound,
+                        enemy: currentEnemy
+                    });
+                    return;
+                }
+
+                if ((/Collect:\s*Memo/i.test(msg) || /wrong submit/i.test(msg) || /Game end:/i.test(msg)) && Number.isFinite(roundStartTs)) {
+                    flushRound(entry.ts);
+                    roundStartTs = null;
+                    currentRound = null;
+                }
+            });
+
+            if (Number.isFinite(roundStartTs) && entries.length > 0) {
+                flushRound(entries[entries.length - 1].ts);
+            }
+
+            return { rows, points };
+        }
+
+        function deterministicCenterCloserJitter(seed) {
+            const x = Math.sin((seed + 1) * 12.9898) * 43758.5453;
+            return x - Math.floor(x);
+        }
+
+        function buildCenterCloserDensityPath(points, laneCenter, laneHeight, plotLeft, plotWidth) {
+            if (!Array.isArray(points) || points.length === 0) return '';
+            const sampleCount = 40;
+            const bandwidth = 0.075;
+            const amplitudes = [];
+            let maxDensity = 0;
+
+            for (let i = 0; i < sampleCount; i += 1) {
+                const t = i / (sampleCount - 1);
+                let density = 0;
+                points.forEach(progress => {
+                    const dx = (t - progress) / bandwidth;
+                    density += Math.exp(-0.5 * dx * dx);
+                });
+                amplitudes.push(density);
+                if (density > maxDensity) maxDensity = density;
+            }
+
+            if (maxDensity <= 0) return '';
+            const maxOffset = Math.max((laneHeight / 2) - 8, 6);
+            return amplitudes.map((density, i) => {
+                const t = i / (sampleCount - 1);
+                const x = plotLeft + (plotWidth * t);
+                const y = laneCenter - ((density / maxDensity) * maxOffset);
+                return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+            }).join(' ');
+        }
+
+        function renderCenterCloserHeatmap(playerSummaries) {
+            const contentEl = document.getElementById('centerCloserHeatmapContent');
+            const maxTurn = 12;
+            const progressBins = 10;
+            const { availableRuns, availableEnemies } = renderCenterCloserSelectors(playerSummaries);
+            const runSet = resolveSelectedRunsForHeatmap(selectedCenterCloserRuns, availableRuns);
+            const enemySet = resolveSelectedEnemiesForHeatmap(selectedCenterCloserEnemies, availableEnemies);
+            const sumMatrix = Array.from({ length: 3 }, () => Array(maxTurn).fill(0));
+            const sumProgressMatrix = Array.from({ length: 3 }, () => Array(progressBins).fill(0));
+            const progressPoints = [[], [], []];
+            const playerCount = playerSummaries.length;
+
+            playerSummaries.forEach(player => {
+                const stats = collectCenterCloserStats(player.content, maxTurn, runSet, enemySet);
+                const progressStats = collectCenterCloserProgressStats(player.content, progressBins, runSet, enemySet);
+                for (let r = 0; r < 3; r += 1) {
+                    for (let c = 0; c < maxTurn; c += 1) {
+                        sumMatrix[r][c] += stats.rows[r][c];
+                    }
+                    for (let c = 0; c < progressBins; c += 1) {
+                        sumProgressMatrix[r][c] += progressStats.rows[r][c];
+                    }
+                    progressPoints[r].push(...(progressStats.points[r] || []));
+                }
+            });
+
+            const matrix = sumMatrix.map(row => row.map(value => playerCount > 0 ? (value / playerCount) : 0));
+            const progressMatrix = sumProgressMatrix.map(row => row.map(value => playerCount > 0 ? (value / playerCount) : 0));
+            const maxCount = Math.max(...matrix.flat(), 0);
+            const maxProgressCount = Math.max(...progressMatrix.flat(), 0);
+            if (maxCount === 0 && maxProgressCount === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No CenterPanelCloserView logs found</h4>
+                        <p>Need logs containing "View focused: CenterPanelCloserView".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const headerCells = Array.from({ length: maxTurn }, (_, i) => `<th>Q${i + 1}</th>`).join('');
+            const bodyRows = matrix.map((row, rowIdx) => {
+                const dataCells = row.map(value => {
+                    const alpha = value > 0 ? (0.08 + (0.87 * (value / maxCount))) : 0.04;
+                    const textColor = alpha > 0.55 ? '#f5f8ff' : '#1f2a44';
+                    return `<td style="background: rgba(27,113,84,${alpha.toFixed(3)}); color: ${textColor};">${value.toFixed(2)}</td>`;
+                }).join('');
+                return `<tr><th>Round ${rowIdx + 1}</th>${dataCells}</tr>`;
+            }).join('');
+
+            const colTotals = Array(maxTurn).fill(0);
+            matrix.forEach(row => {
+                for (let c = 0; c < maxTurn; c += 1) colTotals[c] += row[c];
+            });
+            const totalAvgViews = colTotals.reduce((a, b) => a + b, 0);
+            const ratioRow = colTotals.map(v => {
+                const pct = totalAvgViews > 0 ? ((v / totalAvgViews) * 100).toFixed(1) : '0.0';
+                return `<td>${pct}%</td>`;
+            }).join('');
+
+            const progressColTotals = Array(progressBins).fill(0);
+            progressMatrix.forEach(row => {
+                for (let c = 0; c < progressBins; c += 1) progressColTotals[c] += row[c];
+            });
+            const totalAvgProgressViews = progressColTotals.reduce((a, b) => a + b, 0);
+            const roundColors = ['#c96a1c', '#1b7154', '#4a63d8'];
+            const plotWidth = 820;
+            const plotHeight = 300;
+            const margin = { top: 24, right: 18, bottom: 42, left: 78 };
+            const innerWidth = plotWidth - margin.left - margin.right;
+            const innerHeight = plotHeight - margin.top - margin.bottom;
+            const rowHeight = innerHeight / 3;
+            const laneCenters = [0, 1, 2].map(i => margin.top + (rowHeight * i) + (rowHeight / 2));
+            const xTicks = Array.from({ length: 11 }, (_, i) => {
+                const x = margin.left + ((innerWidth * i) / 10);
+                const label = `${i * 10}%`;
+                return `
+                    <line x1="${x}" y1="${margin.top}" x2="${x}" y2="${plotHeight - margin.bottom}" stroke="rgba(102,126,234,0.14)" stroke-width="1" />
+                    <text x="${x}" y="${plotHeight - 16}" text-anchor="middle" font-size="11" fill="#52607d">${label}</text>
+                `;
+            }).join('');
+            const yGuides = laneCenters.map((y, idx) => `
+                <line x1="${margin.left}" y1="${y}" x2="${plotWidth - margin.right}" y2="${y}" stroke="rgba(84,96,138,0.18)" stroke-width="1" />
+                <text x="${margin.left - 12}" y="${y + 4}" text-anchor="end" font-size="12" fill="#42507a" font-weight="700">Round ${idx + 1}</text>
+            `).join('');
+            const progressDots = progressPoints.map((points, roundIdx) => {
+                const laneCenter = laneCenters[roundIdx];
+                const laneAmplitude = Math.max((rowHeight / 2) - 10, 8);
+                return points.map((progress, pointIdx) => {
+                    const x = margin.left + (Math.min(Math.max(progress, 0), 1) * innerWidth);
+                    const jitterRatio = deterministicCenterCloserJitter((roundIdx * 100000) + pointIdx) - 0.5;
+                    const y = laneCenter + (jitterRatio * laneAmplitude * 1.6);
+                    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3.1" fill="${roundColors[roundIdx]}" fill-opacity="0.33" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.7" />`;
+                }).join('');
+            }).join('');
+            const densityLines = progressPoints.map((points, roundIdx) => {
+                const path = buildCenterCloserDensityPath(points, laneCenters[roundIdx], rowHeight, margin.left, innerWidth);
+                if (!path) return '';
+                return `<path d="${path}" fill="none" stroke="${roundColors[roundIdx]}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" />`;
+            }).join('');
+            const progressLegend = progressPoints.map((points, idx) => `
+                <span class="oxygen-legend-item">
+                    <span class="oxygen-legend-swatch" style="background:${roundColors[idx]}; width:12px; height:12px; border-radius:999px;"></span>
+                    Round ${idx + 1} (${points.length} events)
+                </span>
+            `).join('');
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Average CenterPanelCloserView frequency per player. Players in filter: <b>${playerCount}</b> | Avg total views per player: <b>${totalAvgViews.toFixed(2)}</b>.</div>
+                <div class="stats-meta">Top heatmap uses query turn index. Bottom plot shows individual focus events across actual round-time progress from 0% to 100%.</div>
+                <div class="heatmap-wrap">
+                    <table class="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th>Round\\Query Turn</th>
+                                ${headerCells}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bodyRows}
+                            <tr>
+                                <th>Avg Ratio</th>
+                                ${ratioRow}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="heatmap-legend">
+                    <span>Low</span>
+                    <div class="heatmap-gradient"></div>
+                    <span>High (max ${maxCount.toFixed(2)})</span>
+                </div>
+                <div class="scatter-wrap">
+                    <svg class="scatter-plot" viewBox="0 0 ${plotWidth} ${plotHeight}" preserveAspectRatio="none" aria-label="CenterPanelCloserView time progress scatter plot">
+                        <rect x="${margin.left}" y="${margin.top}" width="${innerWidth}" height="${innerHeight}" fill="rgba(255,255,255,0.72)" />
+                        ${xTicks}
+                        ${yGuides}
+                        <line x1="${margin.left}" y1="${plotHeight - margin.bottom}" x2="${plotWidth - margin.right}" y2="${plotHeight - margin.bottom}" stroke="#62709c" stroke-width="1.2" />
+                        <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${plotHeight - margin.bottom}" stroke="#62709c" stroke-width="1.2" />
+                        ${densityLines}
+                        ${progressDots}
+                    </svg>
+                </div>
+                <div class="stats-meta">Time-progress distribution uses <b>${progressPoints.flat().length}</b> total focus events. Average total views per player on this axis: <b>${totalAvgProgressViews.toFixed(2)}</b>.</div>
+                <div class="oxygen-legend">${progressLegend}</div>
             `;
         }
 
@@ -3880,7 +4406,11 @@
         async function jumpToLuckyPlayerLog() {
             if (!cachedBoardPairs || cachedBoardPairs.length === 0 || currentLuckyIndex < 0) return;
             const pick = cachedBoardPairs[currentLuckyIndex];
-            await selectLog(pick.userId);
+            await selectLog(pick.userId, {
+                runNo: pick.runNo,
+                roundNo: Number.isFinite(Number(pick.floorNo)) ? Number(pick.floorNo) : undefined,
+                messageContains: 'Enemy board:'
+            });
         }
 
         function collectEnemyNoEAnomalies(playerSummaries) {
@@ -4155,7 +4685,12 @@
             if (!Array.isArray(cachedEnemyNoECases)) return;
             const rec = cachedEnemyNoECases[index];
             if (!rec || !rec.userId) return;
-            await selectLog(rec.userId);
+            await selectLog(rec.userId, {
+                runNo: rec.runNo,
+                roundNo: Number.isFinite(Number(rec.floorNo)) ? Number(rec.floorNo) : undefined,
+                enemy: Number.isFinite(Number(rec.enemyNo)) ? Number(rec.enemyNo) : undefined,
+                messageContains: rec.log
+            });
         }
 
         function showInvalidEnemyBoardShapeCases() {
@@ -4220,7 +4755,12 @@
             if (!Array.isArray(cachedInvalidEnemyBoardCases)) return;
             const rec = cachedInvalidEnemyBoardCases[index];
             if (!rec || !rec.userId) return;
-            await selectLog(rec.userId);
+            await selectLog(rec.userId, {
+                runNo: rec.runNo,
+                roundNo: Number.isFinite(Number(rec.floorNo)) ? Number(rec.floorNo) : undefined,
+                enemy: Number.isFinite(Number(rec.enemyNo)) ? Number(rec.enemyNo) : undefined,
+                messageContains: rec.log
+            });
         }
 
         function updateLuckyButtons() {
@@ -4896,7 +5436,13 @@
             if (!Array.isArray(cachedWinCauseDebugRows)) return;
             const rec = cachedWinCauseDebugRows[index];
             if (!rec || !rec.userId) return;
-            await selectLog(rec.userId);
+            const targetMessage = (rec.causeFrom && rec.causeFrom !== '-') ? rec.causeFrom : rec.enemyFrom;
+            await selectLog(rec.userId, {
+                runNo: rec.runNo,
+                roundNo: rec.round,
+                enemy: rec.enemy,
+                messageContains: targetMessage
+            });
         }
 
         function renderWinCauseSelectors(playerSummaries) {
@@ -5071,6 +5617,186 @@
 
             contentEl.innerHTML = `
                 <div class="stats-meta">Win causes by round for selected run/enemy filters. Submit Win: submit-based victory. Enemy Miss Win: round advanced without submit, or explicit "Game win: Enemy torpedo miss".</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${lineHtml}
+                            ${xLabelHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="oxygen-legend">${legendHtml}</div>
+                <div class="death-pie-grid">${pieCardsHtml}</div>
+            `;
+        }
+
+        function renderOutcomeTotalSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('outcomeTotalRunSelect');
+            const enemySelectEl = document.getElementById('outcomeTotalEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedOutcomeTotalRuns = normalizeSelectedRuns(selectedOutcomeTotalRuns, availableRuns);
+            selectedOutcomeTotalEnemies = normalizeSelectedEnemies(selectedOutcomeTotalEnemies, availableEnemies);
+
+            renderRunSelectOptions(runSelectEl, availableRuns, selectedOutcomeTotalRuns, () => {
+                selectedOutcomeTotalRuns = new Set(Array.from(runSelectEl.selectedOptions).map(o => o.value));
+                if (selectedOutcomeTotalRuns.size === 0) selectedOutcomeTotalRuns = new Set(['all']);
+                if (selectedOutcomeTotalRuns.has('all') && selectedOutcomeTotalRuns.size > 1) selectedOutcomeTotalRuns = new Set(['all']);
+                Array.from(runSelectEl.options).forEach(opt => { opt.selected = selectedOutcomeTotalRuns.has(opt.value); });
+                renderOutcomeTotalStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderRunSelectOptions(enemySelectEl, availableEnemies, selectedOutcomeTotalEnemies, () => {
+                selectedOutcomeTotalEnemies = new Set(Array.from(enemySelectEl.selectedOptions).map(o => o.value));
+                if (selectedOutcomeTotalEnemies.size === 0) selectedOutcomeTotalEnemies = new Set(['all']);
+                if (selectedOutcomeTotalEnemies.has('all') && selectedOutcomeTotalEnemies.size > 1) selectedOutcomeTotalEnemies = new Set(['all']);
+                Array.from(enemySelectEl.options).forEach(opt => { opt.selected = selectedOutcomeTotalEnemies.has(opt.value); });
+                renderOutcomeTotalStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function renderOutcomeTotalStats(playerSummaries) {
+            const contentEl = document.getElementById('outcomeTotalContent');
+            const { availableRuns, availableEnemies } = renderOutcomeTotalSelectors(playerSummaries);
+            const selectedRunSet = resolveSelectedRunsForHeatmap(selectedOutcomeTotalRuns, availableRuns);
+            const selectedEnemySet = resolveSelectedEnemiesForHeatmap(selectedOutcomeTotalEnemies, availableEnemies);
+
+            const rounds = [1, 2, 3];
+            const deathCounts = [0, 0, 0];
+            const winCounts = [0, 0, 0];
+
+            playerSummaries.forEach(player => {
+                const deaths = collectRunDeathRecords(player.content);
+                deaths.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    const idx = rounds.indexOf(rec.round);
+                    if (idx < 0) return;
+                    deathCounts[idx] += 1;
+                });
+
+                const wins = collectRunWinCauseRecords(player.content);
+                wins.forEach(rec => {
+                    if (!selectedRunSet.has(rec.runNo)) return;
+                    if (!selectedEnemySet.has(rec.enemy)) return;
+                    const idx = rounds.indexOf(rec.round);
+                    if (idx < 0) return;
+                    winCounts[idx] += 1;
+                });
+            });
+
+            const totalCounts = rounds.map((_, idx) => deathCounts[idx] + winCounts[idx]);
+            const grandTotal = totalCounts.reduce((a, b) => a + b, 0);
+            if (grandTotal === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No outcome records</h4>
+                        <p>No matching win/death records for selected run/enemy filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const series = [
+                { label: 'Deaths', color: '#d62728', values: deathCounts },
+                { label: 'Wins', color: '#2ca02c', values: winCounts },
+                { label: 'Total', color: '#1f77b4', values: totalCounts }
+            ];
+            const yMax = Math.max(1, ...series.flatMap(s => s.values));
+            const yTop = Math.max(1, Math.ceil((yMax + 1) / 2) * 2);
+            const svgWidth = 760;
+            const svgHeight = 280;
+            const leftPad = 44;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+            const xForRound = (round) => leftPad + ((round - 1) * (plotW / 2));
+            const yForCount = (count) => topPad + (plotH * (1 - (count / yTop)));
+
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(yTop * t));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForCount(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+
+            const xLabelHtml = rounds.map(round => {
+                const x = xForRound(round);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">Round ${round}</text>`;
+            }).join('');
+
+            const lineHtml = series.map(s => {
+                const points = rounds.map((round, idx) => ({
+                    x: xForRound(round),
+                    y: yForCount(s.values[idx])
+                }));
+                const poly = `<polyline points="${points.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2.2"></polyline>`;
+                const dots = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${s.color}" stroke="#fff" stroke-width="1.1"></circle>`).join('');
+                return `${poly}${dots}`;
+            }).join('');
+
+            const legendHtml = series.map(s => {
+                const n = s.values.reduce((a, b) => a + b, 0);
+                return `<span class="oxygen-legend-item"><span class="oxygen-legend-swatch" style="background:${s.color};"></span>${s.label} (n=${n})</span>`;
+            }).join('');
+
+            const pieCardsHtml = rounds.map((round, idx) => {
+                const death = deathCounts[idx];
+                const win = winCounts[idx];
+                const total = death + win;
+                if (total <= 0) {
+                    return `
+                        <div class="death-pie-card">
+                            <h4>Round ${round}</h4>
+                            <div class="death-pie-list">No outcomes</div>
+                        </div>
+                    `;
+                }
+
+                const cx = 60;
+                const cy = 60;
+                const r = 44;
+                const deathFrac = death / total;
+                const start = -Math.PI / 2;
+                const mid = start + (deathFrac * Math.PI * 2);
+                const end = start + (Math.PI * 2);
+                const arcPath = (a, b) => {
+                    const x1 = cx + (r * Math.cos(a));
+                    const y1 = cy + (r * Math.sin(a));
+                    const x2 = cx + (r * Math.cos(b));
+                    const y2 = cy + (r * Math.sin(b));
+                    const largeArc = (b - a) > Math.PI ? 1 : 0;
+                    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                };
+                const slicesHtml = `
+                    ${death > 0 ? (deathFrac >= 0.9999 ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#d62728"></circle>` : `<path d="${arcPath(start, mid)}" fill="#d62728"></path>`) : ''}
+                    ${win > 0 ? ((1 - deathFrac) >= 0.9999 ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#2ca02c"></circle>` : `<path d="${arcPath(mid, end)}" fill="#2ca02c"></path>`) : ''}
+                `;
+                return `
+                    <div class="death-pie-card">
+                        <h4>Round ${round}</h4>
+                        <div class="death-pie-wrap">
+                            <svg class="death-pie-svg" viewBox="0 0 120 120" aria-label="Round ${round} total outcomes ratio">
+                                ${slicesHtml}
+                                <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-width="1.2"></circle>
+                            </svg>
+                            <div class="death-pie-list">
+                                <span><span class="oxygen-legend-swatch" style="background:#d62728;"></span> Deaths: ${((death / total) * 100).toFixed(1)}% (${death}/${total})</span>
+                                <span><span class="oxygen-legend-swatch" style="background:#2ca02c;"></span> Wins: ${((win / total) * 100).toFixed(1)}% (${win}/${total})</span>
+                                <span><span class="oxygen-legend-swatch" style="background:#1f77b4;"></span> Total: ${total}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Combined round totals across wins and deaths for selected run/enemy filters.</div>
                 <div class="oxygen-chart-wrap">
                     <div class="oxygen-plot">
                         <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
