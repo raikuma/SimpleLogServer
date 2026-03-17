@@ -954,6 +954,60 @@
             white-space: nowrap;
         }
 
+        .tutorial-chart {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .tutorial-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 220px) 1fr 210px;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .tutorial-label {
+            color: #33405f;
+            font-size: 0.9em;
+            line-height: 1.35;
+        }
+
+        .tutorial-label code {
+            font-size: 0.95em;
+        }
+
+        .tutorial-bar-track {
+            position: relative;
+            height: 20px;
+            border-radius: 999px;
+            background: #edf1ff;
+            overflow: hidden;
+            border: 1px solid #d7deff;
+        }
+
+        .tutorial-bar-reached {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(102,126,234,0.32) 0%, rgba(102,126,234,0.58) 100%);
+        }
+
+        .tutorial-bar-quit {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(219,74,96,0.72) 0%, rgba(187,39,70,0.92) 100%);
+        }
+
+        .tutorial-bar-stats {
+            color: #465272;
+            font-size: 0.84em;
+            white-space: nowrap;
+        }
+
         @media (max-width: 768px) {
             .logs-container {
                 grid-template-columns: 1fr;
@@ -1041,6 +1095,11 @@
             <div id="progressContent" class="loading">Loading progress stats...</div>
         </div>
 
+        <div class="oxygen-section" id="tutorialDropoffSection">
+            <h3>Tutorial Drop-off by Dialog</h3>
+            <div id="tutorialDropoffContent" class="loading">Loading tutorial dialog stats...</div>
+        </div>
+
         <div class="heatmap-section" id="queryHeatmapSection">
             <h3>Query Counts by Turn Heatmap</h3>
             <div class="oxygen-controls" style="margin-bottom:10px;">
@@ -1072,6 +1131,17 @@
                 <select id="centerCloserEnemySelect" class="oxygen-run-select" multiple size="6"></select>
             </div>
             <div id="centerCloserHeatmapContent" class="loading">Loading CenterPanelCloserView stats...</div>
+        </div>
+
+        <div class="heatmap-section" id="skipTimeSection">
+            <h3>Skip Time Patterns</h3>
+            <div class="oxygen-controls" style="margin-bottom:10px;">
+                <label for="skipTimeRunSelect">Select run:</label>
+                <select id="skipTimeRunSelect" class="oxygen-run-select" style="max-height:none;"></select>
+                <label for="skipTimeEnemySelect">Select Enemy:</label>
+                <select id="skipTimeEnemySelect" class="oxygen-run-select" style="max-height:none;"></select>
+            </div>
+            <div id="skipTimeContent" class="loading">Loading skip time stats...</div>
         </div>
 
         <div class="oxygen-section" id="submitTurnSection">
@@ -1220,6 +1290,8 @@
         let selectedTransitionHeatmapEnemies = new Set();
         let selectedCenterCloserRuns = new Set();
         let selectedCenterCloserEnemies = new Set();
+        let selectedSkipTimeRuns = new Set(['all']);
+        let selectedSkipTimeEnemies = new Set(['all']);
         let selectedSubmitTurnRuns = new Set(['all']);
         let selectedSubmitTurnEnemies = new Set(['all']);
         let selectedItemRuns = new Set(['all']);
@@ -1234,6 +1306,29 @@
         let selectedOutcomeTotalEnemies = new Set(['all']);
         let cachedWinCauseDebugRows = [];
         let autoRefreshIntervalId = null;
+        const TUTORIAL_DIALOG_STAGES = [
+            { key: 'TUT-01', label: '튜토리얼 시작' },
+            { key: 'TUT-03-01', label: '왼쪽 기물' },
+            { key: 'TUT-04', label: '룰 설명' },
+            { key: 'TUT-05', label: '위쪽 기판' },
+            { key: 'TUT-06-01', label: '1번 쿼리 (/, ㅁ 게스스탬프)' },
+            { key: 'TUT-07-01', label: '2번 쿼리 (@ 게스스탬프)' },
+            { key: 'TUT-07-02.5', label: '18번 쿼리 (\\, 게스스탬프)' },
+            { key: 'TUT-07-03.5', label: '15번 쿼리 (O 서밋)' },
+            { key: 'TUT-07-05', label: '튜토리얼 끝' },
+            { key: 'TUT-07-06', label: '정답 제출 실패' }
+        ];
+        const TUTORIAL_DIALOG_KEY_SET = new Set(TUTORIAL_DIALOG_STAGES.map(stage => stage.key));
+        const TUTORIAL_DIALOG_NEXT_KEY = new Map([
+            ['TUT-01', 'TUT-03-01'],
+            ['TUT-03-01', 'TUT-04'],
+            ['TUT-04', 'TUT-05'],
+            ['TUT-05', 'TUT-06-01'],
+            ['TUT-06-01', 'TUT-07-01'],
+            ['TUT-07-01', 'TUT-07-02.5'],
+            ['TUT-07-02.5', 'TUT-07-03.5'],
+            ['TUT-07-03.5', 'TUT-07-05']
+        ]);
 
         const DEFAULT_API_HOST = 'http://localhost:3333';
 
@@ -1953,13 +2048,23 @@
             }
 
             if (selectedVersionKeys.size === 0) {
-                allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+                allVersionKeys.forEach(v => {
+                    if (v !== NULL_VERSION_KEY) selectedVersionKeys.add(v);
+                });
+                if (selectedVersionKeys.size === 0) {
+                    allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+                }
             } else {
                 selectedVersionKeys = new Set(
                     Array.from(selectedVersionKeys).filter(v => allVersionKeys.includes(v))
                 );
                 if (selectedVersionKeys.size === 0) {
-                    allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+                    allVersionKeys.forEach(v => {
+                        if (v !== NULL_VERSION_KEY) selectedVersionKeys.add(v);
+                    });
+                    if (selectedVersionKeys.size === 0) {
+                        allVersionKeys.forEach(v => selectedVersionKeys.add(v));
+                    }
                 }
             }
 
@@ -2009,10 +2114,12 @@
 
             renderLifetimeHistogram(filteredPlayers);
             renderProgressStats(filteredPlayers);
+            renderTutorialDropoffStats(filteredPlayers);
             renderHeatmapRunSelectors(filteredPlayers);
             renderTurnQueryHeatmap(filteredPlayers);
             renderQueryTransitionHeatmap(filteredPlayers);
             renderCenterCloserHeatmap(filteredPlayers);
+            renderSkipTimeStats(filteredPlayers);
             renderSubmitTurnStats(filteredPlayers);
             renderOxygenTrends(filteredPlayers);
             renderElectricityTrends(filteredPlayers);
@@ -2099,6 +2206,35 @@
                 opt.selected = selectedSet.has(opt.value);
             });
             enableToggleSelect(selectEl);
+            selectEl.onchange = onChange;
+        }
+
+        function enableExclusiveSelect(selectEl) {
+            if (!selectEl) return;
+            if (selectEl._exclusiveHandler) {
+                selectEl.removeEventListener('mousedown', selectEl._exclusiveHandler);
+            }
+            selectEl.dataset.toggleSelectBound = '0';
+            const handler = (e) => {
+                const option = e.target.closest('option');
+                if (!option) return;
+                e.preventDefault();
+                Array.from(selectEl.options).forEach(opt => {
+                    opt.selected = (opt === option);
+                });
+                selectEl.dispatchEvent(new Event('change'));
+            };
+            selectEl._exclusiveHandler = handler;
+            selectEl.addEventListener('mousedown', handler);
+        }
+
+        function renderSingleSelectOptions(selectEl, availableValues, selectedSet, onChange, labelBuilder, allLabel) {
+            if (!selectEl) return;
+            const toLabel = labelBuilder || ((v) => String(v));
+            const currentValue = (selectedSet && selectedSet.size > 0) ? Array.from(selectedSet)[0] : 'all';
+            const optionsHtml = availableValues.map(value => `<option value="${value}">${toLabel(value)}</option>`).join('');
+            selectEl.innerHTML = `<option value="all">${allLabel || 'All'}</option>${optionsHtml}`;
+            selectEl.value = Array.from(selectEl.options).some(opt => opt.value === currentValue) ? currentValue : 'all';
             selectEl.onchange = onChange;
         }
 
@@ -2305,9 +2441,11 @@
                 console.error('Error loading lifetime playtime stats:', error);
                 renderStatsError(error.message);
                 renderProgressError(error.message);
+                renderTutorialDropoffError(error.message);
                 renderHeatmapError(error.message);
                 renderTransitionHeatmapError(error.message);
                 renderCenterCloserHeatmapError(error.message);
+                renderSkipTimeError(error.message);
                 renderSubmitTurnError(error.message);
                 renderOxygenError(error.message);
                 renderElectricityError(error.message);
@@ -2331,6 +2469,11 @@
             progressContentEl.innerHTML = `<div class="error">Error loading progress stats: ${message}</div>`;
         }
 
+        function renderTutorialDropoffError(message) {
+            const tutorialContentEl = document.getElementById('tutorialDropoffContent');
+            tutorialContentEl.innerHTML = `<div class="error">Error loading tutorial dialog stats: ${message}</div>`;
+        }
+
         function renderHeatmapError(message) {
             const queryHeatmapEl = document.getElementById('queryHeatmapContent');
             queryHeatmapEl.innerHTML = `<div class="error">Error loading query heatmap: ${message}</div>`;
@@ -2344,6 +2487,11 @@
         function renderCenterCloserHeatmapError(message) {
             const centerCloserHeatmapEl = document.getElementById('centerCloserHeatmapContent');
             centerCloserHeatmapEl.innerHTML = `<div class="error">Error loading CenterPanelCloserView stats: ${message}</div>`;
+        }
+
+        function renderSkipTimeError(message) {
+            const skipTimeEl = document.getElementById('skipTimeContent');
+            skipTimeEl.innerHTML = `<div class="error">Error loading skip time stats: ${message}</div>`;
         }
 
         function renderSubmitTurnError(message) {
@@ -2518,6 +2666,185 @@
                         </svg>
                     </div>
                     <div class="progress-xlabels">${labelsHtml}</div>
+                </div>
+            `;
+        }
+
+        function collectTutorialDropoffStats(playerSummaries) {
+            const stageStats = TUTORIAL_DIALOG_STAGES.map(stage => ({
+                ...stage,
+                reached: 0,
+                quit: 0
+            }));
+            const stageByKey = new Map(stageStats.map(stage => [stage.key, stage]));
+            const sessions = [];
+
+            const finalizeSession = (session) => {
+                if (!session) return;
+                session.seenKeys.forEach(key => {
+                    const stage = stageByKey.get(key);
+                    if (stage) stage.reached += 1;
+                });
+                let outcome = 'incomplete';
+                let dropKey = null;
+
+                if (session.seenKeys.has('TUT-07-05')) {
+                    outcome = 'completed';
+                } else if (session.seenKeys.has('TUT-07-06')) {
+                    outcome = 'drop';
+                    dropKey = 'TUT-07-06';
+                } else {
+                    for (const stage of TUTORIAL_DIALOG_STAGES) {
+                        if (!session.seenKeys.has(stage.key)) continue;
+                        const nextKey = TUTORIAL_DIALOG_NEXT_KEY.get(stage.key);
+                        if (nextKey && !session.seenKeys.has(nextKey)) {
+                            outcome = 'drop';
+                            dropKey = stage.key;
+                            break;
+                        }
+                    }
+                }
+
+                if (dropKey) {
+                    const stage = stageByKey.get(dropKey);
+                    if (stage) stage.quit += 1;
+                }
+                sessions.push({
+                    userId: session.userId,
+                    outcome,
+                    lastDialogKey: dropKey || session.currentKey || 'TUT-01'
+                });
+            };
+
+            (playerSummaries || []).forEach(player => {
+                const entries = (player.content || [])
+                    .map(extractTimestampMs)
+                    .filter(Boolean)
+                    .sort((a, b) => a.ts - b.ts);
+
+                let currentSession = null;
+                entries.forEach(entry => {
+                    const msg = entry.message || '';
+
+                    if (/Tutorial started/i.test(msg)) {
+                        if (currentSession) finalizeSession(currentSession);
+                        currentSession = {
+                            userId: player.userId,
+                            currentKey: 'TUT-01',
+                            seenKeys: new Set(['TUT-01'])
+                        };
+                        return;
+                    }
+
+                    if (!currentSession) return;
+
+                    const dialogMatch = msg.match(/^Dialog started:\s*([A-Za-z0-9.\-]+)/i);
+                    if (dialogMatch) {
+                        const key = dialogMatch[1].trim();
+                        if (TUTORIAL_DIALOG_KEY_SET.has(key)) {
+                            currentSession.currentKey = key;
+                            currentSession.seenKeys.add(key);
+                            if (key === 'TUT-07-05') {
+                                finalizeSession(currentSession);
+                                currentSession = null;
+                            }
+                        }
+                        return;
+                    }
+
+                    if (/Game start/i.test(msg) || /^Check in$/i.test(msg) || /^Round:\s*1\b/i.test(msg) || /Ship scene started/i.test(msg)) {
+                        finalizeSession(currentSession);
+                        currentSession = null;
+                    }
+                });
+
+                if (currentSession) {
+                    finalizeSession(currentSession);
+                }
+            });
+
+            const totalSessions = sessions.length;
+            const quitSessions = sessions.filter(s => s.outcome === 'drop').length;
+            const completedSessions = sessions.filter(s => s.outcome === 'completed').length;
+            const incompleteSessions = sessions.filter(s => s.outcome === 'incomplete').length;
+            return {
+                totalSessions,
+                quitSessions,
+                completedSessions,
+                incompleteSessions,
+                stageStats
+            };
+        }
+
+        function renderTutorialDropoffStats(playerSummaries) {
+            const contentEl = document.getElementById('tutorialDropoffContent');
+            const stats = collectTutorialDropoffStats(playerSummaries);
+
+            if (stats.totalSessions === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No tutorial sessions found</h4>
+                        <p>Need logs containing "Tutorial started".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxReached = Math.max(...stats.stageStats.map(stage => stage.reached), 1);
+            const rowsHtml = stats.stageStats.map(stage => {
+                const reachedWidth = `${(stage.reached / maxReached) * 100}%`;
+                const quitWidth = `${(stage.quit / maxReached) * 100}%`;
+                const quitRate = stage.reached > 0 ? ((stage.quit / stage.reached) * 100).toFixed(1) : '0.0';
+                return `
+                    <div class="tutorial-row">
+                        <div class="tutorial-label"><code>${stage.key}</code><br>${escapeHtml(stage.label)}</div>
+                        <div class="tutorial-bar-track">
+                            <div class="tutorial-bar-reached" style="width:${reachedWidth};"></div>
+                            <div class="tutorial-bar-quit" style="width:${quitWidth};"></div>
+                        </div>
+                        <div class="tutorial-bar-stats">Reached <b>${stage.reached}</b> | Quit here <b>${stage.quit}</b> | Drop <b>${quitRate}%</b></div>
+                    </div>
+                `;
+            }).join('');
+
+            const tableRows = stats.stageStats.map(stage => {
+                const quitRate = stage.reached > 0 ? ((stage.quit / stage.reached) * 100).toFixed(1) : '0.0';
+                return `
+                    <tr>
+                        <td><code>${stage.key}</code></td>
+                        <td style="text-align:left;">${escapeHtml(stage.label)}</td>
+                        <td>${stage.reached}</td>
+                        <td>${stage.quit}</td>
+                        <td>${quitRate}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const sessionQuitRate = stats.totalSessions > 0 ? ((stats.quitSessions / stats.totalSessions) * 100).toFixed(1) : '0.0';
+            contentEl.innerHTML = `
+                <div class="stats-meta">
+                    Tutorial sessions: <b>${stats.totalSessions}</b> |
+                    Dropped before next required dialog: <b>${stats.quitSessions}</b> (${sessionQuitRate}%) |
+                    Completed tutorial: <b>${stats.completedSessions}</b> |
+                    Unclassified/incomplete logs: <b>${stats.incompleteSessions}</b>
+                </div>
+                <div class="stats-meta">Blue = reached this dialog at least once. Red = stopped here because the next required tutorial dialog never appeared. TUT-07-05 counts as completion, and TUT-07-06 without TUT-07-05 counts as drop-off.</div>
+                <div class="tutorial-chart">${rowsHtml}</div>
+                <div class="depth-table-wrap" style="margin-top:14px;">
+                    <table class="depth-table">
+                        <thead>
+                            <tr>
+                                <th>Dialog Key</th>
+                                <th>Meaning</th>
+                                <th>Reached</th>
+                                <th>Quit Here</th>
+                                <th>Drop Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
@@ -3235,6 +3562,335 @@
                 </div>
                 <div class="stats-meta">Turn-progress distribution uses <b>${totalTurnProgressEvents}</b> total focus events across Turn 1~12.</div>
                 <div class="oxygen-legend">${progressLegend}</div>
+            `;
+        }
+
+        function renderSkipTimeSelectors(playerSummaries) {
+            const runSelectEl = document.getElementById('skipTimeRunSelect');
+            const enemySelectEl = document.getElementById('skipTimeEnemySelect');
+            const availableRuns = collectAvailableRunNumbers(playerSummaries);
+            const availableEnemies = collectAvailableEnemyNumbers(playerSummaries);
+            selectedSkipTimeRuns = normalizeSelectedRuns(selectedSkipTimeRuns, availableRuns);
+            selectedSkipTimeEnemies = normalizeSelectedEnemies(selectedSkipTimeEnemies, availableEnemies);
+            if (!selectedSkipTimeRuns || selectedSkipTimeRuns.size === 0) selectedSkipTimeRuns = new Set(['all']);
+            if (!selectedSkipTimeEnemies || selectedSkipTimeEnemies.size === 0) selectedSkipTimeEnemies = new Set(['all']);
+
+            renderSingleSelectOptions(runSelectEl, availableRuns, selectedSkipTimeRuns, () => {
+                selectedSkipTimeRuns = new Set([runSelectEl.value || 'all']);
+                renderSkipTimeStats(getFilteredPlayerDataByVersion());
+            }, (v) => `${v} run`, 'All runs');
+
+            renderSingleSelectOptions(enemySelectEl, availableEnemies, selectedSkipTimeEnemies, () => {
+                selectedSkipTimeEnemies = new Set([enemySelectEl.value || 'all']);
+                renderSkipTimeStats(getFilteredPlayerDataByVersion());
+            }, (v) => `Enemy ${v}`, 'All Enemies');
+
+            return { availableRuns, availableEnemies };
+        }
+
+        function collectSkipTimeStats(content, maxTurn, binCount, selectedRunsSet, selectedEnemiesSet) {
+            const entries = (content || [])
+                .map(extractTimestampMs)
+                .filter(Boolean)
+                .sort((a, b) => a.ts - b.ts);
+
+            const rowsByRound = {};
+            const rowsByTurn = {};
+            const totalsByType = {};
+            let totalEvents = 0;
+            let runNo = 0;
+            let currentRound = null;
+            let currentEnemy = null;
+            let roundStartTs = null;
+            let currentTurn = 0;
+            let turnStartTs = null;
+            let activeRoundSkipEvents = [];
+            let activeTurnSkipEvents = [];
+
+            const isRunSelected = (r) => !selectedRunsSet || selectedRunsSet.has(r);
+            const isEnemySelected = (e) => !selectedEnemiesSet || selectedEnemiesSet.has(e);
+            const ensureTypeRows = (type) => {
+                if (!rowsByRound[type]) rowsByRound[type] = Array.from({ length: 3 }, () => Array(binCount).fill(0));
+                if (!rowsByTurn[type]) rowsByTurn[type] = Array(maxTurn).fill(0);
+                if (!Number.isFinite(totalsByType[type])) totalsByType[type] = 0;
+            };
+            const parseSkipType = (msg) => {
+                const m = (msg || '').match(/^Skip time:\s*(.+)$/i);
+                return m ? m[1].trim() : null;
+            };
+
+            const flushRound = (endTs) => {
+                if (!Number.isFinite(roundStartTs) || !Number.isFinite(endTs) || !Number.isFinite(currentRound) || currentRound < 1 || currentRound > 3) {
+                    activeRoundSkipEvents = [];
+                    return;
+                }
+                const duration = Math.max(endTs - roundStartTs, 1);
+                activeRoundSkipEvents.forEach(ev => {
+                    if (!isRunSelected(ev.runNo) || !isEnemySelected(ev.enemy)) return;
+                    ensureTypeRows(ev.type);
+                    const progress = Math.min(Math.max((ev.ts - roundStartTs) / duration, 0), 0.999999);
+                    const binIdx = Math.min(Math.floor(progress * binCount), binCount - 1);
+                    rowsByRound[ev.type][ev.round - 1][binIdx] += 1;
+                });
+                activeRoundSkipEvents = [];
+            };
+
+            const flushTurn = (endTs) => {
+                if (!Number.isFinite(turnStartTs) || !Number.isFinite(endTs) || !Number.isFinite(currentTurn) || currentTurn < 1 || currentTurn > maxTurn) {
+                    activeTurnSkipEvents = [];
+                    return;
+                }
+                activeTurnSkipEvents.forEach(ev => {
+                    if (!isRunSelected(ev.runNo) || !isEnemySelected(ev.enemy)) return;
+                    ensureTypeRows(ev.type);
+                    rowsByTurn[ev.type][ev.turn - 1] += 1;
+                    totalsByType[ev.type] += 1;
+                    totalEvents += 1;
+                });
+                activeTurnSkipEvents = [];
+            };
+
+            entries.forEach(entry => {
+                const msg = entry.message || '';
+                const enemy = parseEnemyFromMessage(msg);
+                if (Number.isFinite(enemy)) currentEnemy = enemy;
+
+                const roundMatch = msg.match(/Round:\s*([123])\b/i);
+                if (roundMatch) {
+                    const r = Number.parseInt(roundMatch[1], 10);
+                    if (Number.isFinite(turnStartTs)) flushTurn(entry.ts);
+                    if (Number.isFinite(roundStartTs)) flushRound(entry.ts);
+                    if (r === 1) {
+                        runNo += 1;
+                        currentEnemy = Number.isFinite(currentEnemy) ? currentEnemy : null;
+                    } else if (runNo === 0) {
+                        runNo = 1;
+                    }
+                    currentRound = r;
+                    currentTurn = 0;
+                    roundStartTs = entry.ts;
+                    turnStartTs = null;
+                }
+
+                if (runNo === 0 && (/Player turn:/i.test(msg) || /^Skip time:/i.test(msg))) {
+                    runNo = 1;
+                }
+
+                if (/Player turn:/i.test(msg)) {
+                    if (Number.isFinite(turnStartTs)) flushTurn(entry.ts);
+                    currentTurn += 1;
+                    turnStartTs = entry.ts;
+                    return;
+                }
+
+                const skipType = parseSkipType(msg);
+                if (skipType && Number.isFinite(currentRound)) {
+                    const ev = {
+                        ts: entry.ts,
+                        runNo,
+                        round: currentRound,
+                        turn: currentTurn,
+                        enemy: currentEnemy,
+                        type: skipType
+                    };
+                    activeRoundSkipEvents.push(ev);
+                    if (Number.isFinite(turnStartTs) && currentTurn >= 1 && currentTurn <= maxTurn) {
+                        activeTurnSkipEvents.push(ev);
+                    }
+                    return;
+                }
+
+                if ((/Collect:\s*Memo/i.test(msg) || /wrong submit/i.test(msg) || /Game end:/i.test(msg)) && Number.isFinite(roundStartTs)) {
+                    if (Number.isFinite(turnStartTs)) flushTurn(entry.ts);
+                    flushRound(entry.ts);
+                    roundStartTs = null;
+                    turnStartTs = null;
+                    currentRound = null;
+                    currentTurn = 0;
+                }
+            });
+
+            if (entries.length > 0) {
+                const tailTs = entries[entries.length - 1].ts;
+                if (Number.isFinite(turnStartTs)) flushTurn(tailTs);
+                if (Number.isFinite(roundStartTs)) flushRound(tailTs);
+            }
+
+            return { rowsByRound, rowsByTurn, totalsByType, totalEvents };
+        }
+
+        function renderSkipTimeStats(playerSummaries) {
+            const contentEl = document.getElementById('skipTimeContent');
+            const maxTurn = 12;
+            const binCount = 10;
+            const eligiblePlayers = (playerSummaries || []).filter(player => containsMessage(player.content, 'Round: 1'));
+            const { availableRuns, availableEnemies } = renderSkipTimeSelectors(eligiblePlayers);
+            const runSet = resolveSelectedRunsForHeatmap(selectedSkipTimeRuns, availableRuns);
+            const enemySet = resolveSelectedEnemiesForHeatmap(selectedSkipTimeEnemies, availableEnemies);
+            const totalRowsByRound = {};
+            const totalRowsByTurn = {};
+            const totalByType = {};
+            let totalEvents = 0;
+            let playersWithSkip = 0;
+            const playerCount = eligiblePlayers.length;
+
+            if (playerCount === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No eligible players</h4>
+                        <p>Skip stats only include players who reached Round 1.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            eligiblePlayers.forEach(player => {
+                const stats = collectSkipTimeStats(player.content, maxTurn, binCount, runSet, enemySet);
+                if (stats.totalEvents > 0) playersWithSkip += 1;
+                Object.keys(stats.rowsByRound).forEach(type => {
+                    if (!totalRowsByRound[type]) totalRowsByRound[type] = Array.from({ length: 3 }, () => Array(binCount).fill(0));
+                    if (!totalRowsByTurn[type]) totalRowsByTurn[type] = Array(maxTurn).fill(0);
+                    if (!Number.isFinite(totalByType[type])) totalByType[type] = 0;
+                    for (let r = 0; r < 3; r += 1) {
+                        for (let c = 0; c < binCount; c += 1) totalRowsByRound[type][r][c] += stats.rowsByRound[type][r][c];
+                    }
+                    for (let c = 0; c < maxTurn; c += 1) totalRowsByTurn[type][c] += stats.rowsByTurn[type][c];
+                    totalByType[type] += stats.totalsByType[type] || 0;
+                });
+                totalEvents += stats.totalEvents;
+            });
+
+            const skipTypes = Object.keys(totalByType).sort((a, b) => (totalByType[b] - totalByType[a]) || a.localeCompare(b));
+            if (skipTypes.length === 0) {
+                contentEl.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No skip time logs</h4>
+                        <p>Need logs containing "Skip time: ...".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const avgRowsByRound = {};
+            const avgRowsByTurn = {};
+            skipTypes.forEach(type => {
+                avgRowsByRound[type] = (totalRowsByRound[type] || Array.from({ length: 3 }, () => Array(binCount).fill(0)))
+                    .map(row => row.map(v => playerCount > 0 ? (v / playerCount) : 0));
+                avgRowsByTurn[type] = (totalRowsByTurn[type] || Array(maxTurn).fill(0))
+                    .map(v => playerCount > 0 ? (v / playerCount) : 0);
+            });
+
+            const avgSkipByTurn = Array.from({ length: maxTurn }, (_, idx) => (
+                skipTypes.reduce((sum, type) => sum + (avgRowsByTurn[type][idx] || 0), 0)
+            ));
+            const yMax = Math.max(1, ...avgSkipByTurn);
+            const svgWidth = 760;
+            const svgHeight = 240;
+            const leftPad = 40;
+            const rightPad = 16;
+            const topPad = 16;
+            const bottomPad = 32;
+            const plotW = svgWidth - leftPad - rightPad;
+            const plotH = svgHeight - topPad - bottomPad;
+            const xForTurn = (turn) => leftPad + ((turn - 1) * (plotW / (maxTurn - 1)));
+            const yForValue = (value) => topPad + (plotH * (1 - (value / yMax)));
+            const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => Number((yMax * t).toFixed(1)));
+            const yGridHtml = yTicks.map(v => {
+                const y = yForValue(v);
+                return `<line x1="${leftPad}" y1="${y}" x2="${svgWidth - rightPad}" y2="${y}" stroke="rgba(88,109,177,0.2)" stroke-width="1"></line>
+                        <text x="${leftPad - 8}" y="${y + 4}" text-anchor="end" fill="#5f6f96" font-size="11">${v}</text>`;
+            }).join('');
+            const linePoints = avgSkipByTurn.map((value, idx) => ({ x: xForTurn(idx + 1), y: yForValue(value), value }));
+            const lineHtml = `<polyline points="${linePoints.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="#1b7154" stroke-width="2.2"></polyline>`;
+            const lineDotsHtml = linePoints.map(p => `
+                <circle cx="${p.x}" cy="${p.y}" r="3.2" fill="#1b7154" stroke="#ffffff" stroke-width="1.1"></circle>
+                <text x="${p.x}" y="${Math.max(p.y - 10, 12)}" text-anchor="middle" fill="#24456e" font-size="10">${p.value.toFixed(2)}</text>
+            `).join('');
+            const xLabelsHtml = Array.from({ length: maxTurn }, (_, idx) => {
+                const x = xForTurn(idx + 1);
+                return `<text x="${x}" y="${svgHeight - 8}" text-anchor="middle" fill="#3f4c72" font-size="11">T${idx + 1}</text>`;
+            }).join('');
+
+            const pieColors = ['#4a63d8', '#1b7154', '#c96a1c', '#d24f45', '#8f5fd7', '#28a0b5', '#9d7c32', '#d96ea8'];
+            const pieTotal = skipTypes.reduce((sum, type) => sum + (totalByType[type] || 0), 0);
+            let angle = -Math.PI / 2;
+            const cx = 60;
+            const cy = 60;
+            const r = 44;
+            const arcPath = (start, end) => {
+                const x1 = cx + (r * Math.cos(start));
+                const y1 = cy + (r * Math.sin(start));
+                const x2 = cx + (r * Math.cos(end));
+                const y2 = cy + (r * Math.sin(end));
+                const largeArc = (end - start) > Math.PI ? 1 : 0;
+                return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+            };
+            const slicesHtml = skipTypes.map((type, idx) => {
+                const count = totalByType[type] || 0;
+                if (count <= 0) return '';
+                const frac = count / Math.max(pieTotal, 1);
+                const start = angle;
+                const end = angle + (frac * Math.PI * 2);
+                angle = end;
+                const color = pieColors[idx % pieColors.length];
+                if (frac >= 0.9999) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"></circle>`;
+                return `<path d="${arcPath(start, end)}" fill="${color}"></path>`;
+            }).join('');
+            const pieListHtml = skipTypes.map((type, idx) => {
+                const count = totalByType[type] || 0;
+                const pct = pieTotal > 0 ? ((count / pieTotal) * 100).toFixed(1) : '0.0';
+                const color = pieColors[idx % pieColors.length];
+                return `<span><span class="oxygen-legend-swatch" style="background:${color};"></span> ${escapeHtml(type)}: ${pct}% (${count})</span>`;
+            }).join('');
+            const playersWithoutSkip = Math.max(playerCount - playersWithSkip, 0);
+            const usageTotal = Math.max(playerCount, 1);
+            const usageUsedPct = ((playersWithSkip / usageTotal) * 100).toFixed(1);
+            const usageUnusedPct = ((playersWithoutSkip / usageTotal) * 100).toFixed(1);
+            const usageSlicesHtml = playerCount === 0 ? '' : `
+                <path d="M 60 60 L 60 16 A 44 44 0 ${(playersWithSkip / usageTotal) > 0.5 ? 1 : 0} 1 ${60 + (44 * Math.cos(-Math.PI / 2 + ((playersWithSkip / usageTotal) * Math.PI * 2)))} ${60 + (44 * Math.sin(-Math.PI / 2 + ((playersWithSkip / usageTotal) * Math.PI * 2)))} Z" fill="#1b7154"></path>
+                <path d="M 60 60 L ${60 + (44 * Math.cos(-Math.PI / 2 + ((playersWithSkip / usageTotal) * Math.PI * 2)))} ${60 + (44 * Math.sin(-Math.PI / 2 + ((playersWithSkip / usageTotal) * Math.PI * 2)))} A 44 44 0 ${(playersWithoutSkip / usageTotal) > 0.5 ? 1 : 0} 1 60 16 Z" fill="#d7deff"></path>
+            `;
+
+            contentEl.innerHTML = `
+                <div class="stats-meta">Average skip frequency per player for current run/enemy filters. Only players who reached Round 1 are included. Top: total skip average by turn. Bottom: type share and user share.</div>
+                <div class="oxygen-chart-wrap">
+                    <div class="oxygen-plot" style="min-width:0;">
+                        <svg class="oxygen-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
+                            ${yGridHtml}
+                            ${lineHtml}
+                            ${lineDotsHtml}
+                            ${xLabelsHtml}
+                        </svg>
+                    </div>
+                </div>
+                <div class="death-pie-grid" style="margin-top:14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+                    <div style="display:grid; gap:12px;">
+                        <div class="death-pie-card">
+                            <h4>Skip Type Share</h4>
+                            <div class="death-pie-wrap">
+                                <svg class="death-pie-svg" viewBox="0 0 120 120" aria-label="Skip type share">
+                                    ${slicesHtml}
+                                    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-width="1.2"></circle>
+                                </svg>
+                                <div class="death-pie-list">${pieListHtml}</div>
+                            </div>
+                        </div>
+                        <div class="death-pie-card">
+                            <h4>Player Skip Usage</h4>
+                            <div class="death-pie-wrap">
+                                <svg class="death-pie-svg" viewBox="0 0 120 120" aria-label="Player skip usage share">
+                                    ${usageSlicesHtml}
+                                    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ffffff" stroke-width="1.2"></circle>
+                                </svg>
+                                <div class="death-pie-list">
+                                    <span><span class="oxygen-legend-swatch" style="background:#1b7154;"></span> Used skip: ${usageUsedPct}% (${playersWithSkip}/${playerCount})</span>
+                                    <span><span class="oxygen-legend-swatch" style="background:#d7deff;"></span> No skip: ${usageUnusedPct}% (${playersWithoutSkip}/${playerCount})</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats-meta" style="margin-top:0;">Total skip events: <b>${totalEvents}</b> | Players in filter: <b>${playerCount}</b></div>
+                    </div>
+                </div>
             `;
         }
 
